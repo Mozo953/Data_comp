@@ -1,0 +1,11 @@
+.venv/
+.venv_special/
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+.vscode/
+*.log
+run_v2_log.txt
+xgb_train_log.txt
+stacking_improved_debug.log
+artifacts_extratrees_corr_optuna/

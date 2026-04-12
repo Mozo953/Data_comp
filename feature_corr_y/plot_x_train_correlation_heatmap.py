@@ -1,0 +1,86 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import sys
+from pathlib import Path
+
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from odor_competition.data import load_competition_data  # noqa: E402
+
+
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(
+        description="Generate a correlation heatmap for X_train features (Xi)."
+    )
+    parser.add_argument(
+        "--data-dir",
+        type=Path,
+        default=ROOT / "src" / "odor_competition" / "data",
+        help="Directory containing X_train.csv, X_test.csv and y_train.csv.",
+    )
+    parser.add_argument(
+        "--output-dir",
+        type=Path,
+        default=ROOT / "feature_corr_y" / "correlation_x",
+        help="Directory where correlation outputs are saved.",
+    )
+    parser.add_argument(
+        "--method",
+        type=str,
+        default="pearson",
+        choices=["pearson", "spearman", "kendall"],
+        help="Correlation method.",
+    )
+    parser.add_argument(
+        "--annot",
+        action="store_true",
+        help="Display correlation values in heatmap cells.",
+    )
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+    args.output_dir.mkdir(parents=True, exist_ok=True)
+
+    data = load_competition_data(args.data_dir)
+    x_train = data.x_train.copy()
+    if "ID" in x_train.columns:
+        x_train = x_train.drop(columns=["ID"])
+
+    corr = x_train.corr(method=args.method)
+    corr_csv = args.output_dir / f"x_train_corr_{args.method}.csv"
+    corr.to_csv(corr_csv)
+
+    plt.figure(figsize=(12, 10))
+    sns.heatmap(
+        corr,
+        vmin=-1.0,
+        vmax=1.0,
+        center=0.0,
+        cmap="coolwarm",
+        square=True,
+        annot=args.annot,
+        fmt=".2f",
+        linewidths=0.5,
+        cbar_kws={"shrink": 0.8, "label": "Correlation"},
+    )
+    plt.title(f"X_train Feature Correlation Heatmap ({args.method})")
+    plt.tight_layout()
+
+    heatmap_png = args.output_dir / f"x_train_corr_heatmap_{args.method}.png"
+    plt.savefig(heatmap_png, dpi=180)
+    plt.close()
+
+    print(f"Saved correlation matrix: {corr_csv}")
+    print(f"Saved heatmap: {heatmap_png}")
+
+
+if __name__ == "__main__":
+    main()
