@@ -63,7 +63,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--random-state", type=int, default=42)
     parser.add_argument("--optuna-trials", type=int, default=3)
     parser.add_argument("--optuna-timeout-sec", type=int, default=900)
-    parser.add_argument("--dirichlet-samples", type=int, default=12000)
+    parser.add_argument("--dirichlet-samples", type=int, default=5000)
     parser.add_argument("--dirichlet-alpha", type=float, default=2.5)
     parser.add_argument("--shrinkage-grid-size", type=int, default=25)
     parser.add_argument("--et-n-jobs", type=int, default=-1)
