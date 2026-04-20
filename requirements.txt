@@ -8,3 +8,4 @@ jupyter>=1.1
 notebook>=7.4
 ydata-profiling>=4.12
 optuna>=4.0
+catboost>=1.2

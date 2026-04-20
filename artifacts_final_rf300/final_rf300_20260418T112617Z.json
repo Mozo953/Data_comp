@@ -1,0 +1,116 @@
+{
+  "generated_at_utc": "20260418T112617Z",
+  "task": "toxic_gas_multioutput_regression",
+  "final_model_name": "random_forest_raw_300_full_data",
+  "data_dir": "C:\\Users\\AsgharAli Thomas\\Documents\\DSIA\\ML2\\final_delivery_Reproduceable\\src\\odor_competition\\data",
+  "feature_columns": [
+    "X12",
+    "X13",
+    "X14",
+    "X15",
+    "X4",
+    "X5",
+    "X6",
+    "X7",
+    "Z",
+    "Y1",
+    "Y2",
+    "Y3"
+  ],
+  "feature_count": 12,
+  "train_shape": [
+    202933,
+    12
+  ],
+  "test_shape": [
+    134673,
+    12
+  ],
+  "holdout_fraction": 0.2,
+  "holdout_rows": {
+    "fit": 162346,
+    "validation": 40587
+  },
+  "duplicate_target_groups": [
+    [
+      "d02",
+      "d07",
+      "d20"
+    ],
+    [
+      "d03",
+      "d04",
+      "d22"
+    ],
+    [
+      "d05",
+      "d06",
+      "d21"
+    ]
+  ],
+  "constant_targets": {
+    "d15": 0.0
+  },
+  "target_strategy": {
+    "trained_targets": [
+      "d01",
+      "d02",
+      "d03",
+      "d04",
+      "d05",
+      "d06",
+      "d07",
+      "d08",
+      "d09",
+      "d10",
+      "d11",
+      "d12",
+      "d13",
+      "d14",
+      "d16",
+      "d17",
+      "d18",
+      "d19",
+      "d20",
+      "d21",
+      "d22",
+      "d23"
+    ],
+    "d15_handling": "removed_from_training_and_reinserted_as_zero",
+    "duplicate_groups_handling": "predictions_averaged_within_known_duplicate_groups_before_export"
+  },
+  "hyperparameter_optimization": {
+    "enabled": false,
+    "n_trials": 0
+  },
+  "rf_params": {
+    "n_estimators": 300,
+    "max_depth": 22,
+    "min_samples_split": 0.005,
+    "min_samples_leaf": 20,
+    "max_features": 0.7,
+    "random_state": 42,
+    "n_jobs": -1
+  },
+  "diagnostic_scores": {
+    "train_rmse": 0.07132367432055868,
+    "validation_rmse": 0.07254687904087861,
+    "full_train_rmse": 0.0711046579715452
+  },
+  "feature_importance": {
+    "Y1": 0.26981563323019114,
+    "Y2": 0.18407232598338488,
+    "Z": 0.11495339897585978,
+    "Y3": 0.07482494425817904,
+    "X13": 0.06082137936123055,
+    "X6": 0.057325947821068375,
+    "X14": 0.05141825815876769,
+    "X5": 0.05063086033348953,
+    "X7": 0.039287488651929214,
+    "X15": 0.038830459994030155,
+    "X4": 0.03382097829791315,
+    "X12": 0.02419832493395646
+  },
+  "submission_path": null,
+  "skip_submission": true
+}

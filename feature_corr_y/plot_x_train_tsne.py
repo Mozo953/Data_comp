@@ -19,7 +19,14 @@ from odor_competition.data import load_competition_data  # noqa: E402
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Compute and plot t-SNE for X_train Xi features."
+        description="Compute and plot t-SNE for Xi features from X_train or X_test."
+    )
+    parser.add_argument(
+        "--split",
+        type=str,
+        choices=["train", "test"],
+        default="train",
+        help="Dataset split to project with t-SNE.",
     )
     parser.add_argument(
         "--data-dir",
@@ -65,23 +72,25 @@ def main() -> None:
     args.output_dir.mkdir(parents=True, exist_ok=True)
 
     data = load_competition_data(args.data_dir)
-    x_train = data.x_train.copy()
+    x_split = data.x_train.copy() if args.split == "train" else data.x_test.copy()
 
-    ids = x_train["ID"].copy() if "ID" in x_train.columns else pd.RangeIndex(len(x_train))
-    if "ID" in x_train.columns:
-        x_train = x_train.drop(columns=["ID"])
+    ids = x_split["ID"].copy() if "ID" in x_split.columns else pd.RangeIndex(len(x_split))
+    if "ID" in x_split.columns:
+        x_split = x_split.drop(columns=["ID"])
 
-    if args.max_samples > 0 and len(x_train) > args.max_samples:
-        sampled_idx = x_train.sample(n=args.max_samples, random_state=args.random_state).index
-        x_train = x_train.loc[sampled_idx]
-        ids = pd.Series(ids, index=data.x_train.index).loc[sampled_idx].to_numpy()
-        env_values = data.x_train.loc[sampled_idx, "Env"].to_numpy() if "Env" in data.x_train.columns else None
+    if args.max_samples > 0 and len(x_split) > args.max_samples:
+        sampled_idx = x_split.sample(n=args.max_samples, random_state=args.random_state).index
+        x_split = x_split.loc[sampled_idx]
+        source_df = data.x_train if args.split == "train" else data.x_test
+        ids = pd.Series(ids, index=source_df.index).loc[sampled_idx].to_numpy()
+        env_values = source_df.loc[sampled_idx, "Env"].to_numpy() if "Env" in source_df.columns else None
     else:
         ids = ids.to_numpy() if hasattr(ids, "to_numpy") else ids
-        env_values = data.x_train["Env"].to_numpy() if "Env" in data.x_train.columns else None
+        source_df = data.x_train if args.split == "train" else data.x_test
+        env_values = source_df["Env"].to_numpy() if "Env" in source_df.columns else None
 
     scaler = StandardScaler()
-    x_scaled = scaler.fit_transform(x_train)
+    x_scaled = scaler.fit_transform(x_split)
 
     tsne = TSNE(
         n_components=2,
@@ -104,7 +113,7 @@ def main() -> None:
     if env_values is not None:
         out_df["Env"] = env_values
 
-    csv_path = args.output_dir / "x_train_tsne.csv"
+    csv_path = args.output_dir / f"x_{args.split}_tsne.csv"
     out_df.to_csv(csv_path, index=False)
 
     plt.figure(figsize=(10, 8))
@@ -122,12 +131,12 @@ def main() -> None:
     else:
         sns.scatterplot(data=out_df, x="tsne_1", y="tsne_2", s=22, alpha=0.85, linewidth=0)
 
-    plt.title("t-SNE projection of X_train Xi features")
+    plt.title(f"t-SNE projection of X_{args.split} Xi features")
     plt.xlabel("t-SNE 1")
     plt.ylabel("t-SNE 2")
     plt.tight_layout()
 
-    png_path = args.output_dir / "x_train_tsne.png"
+    png_path = args.output_dir / f"x_{args.split}_tsne.png"
     plt.savefig(png_path, dpi=180)
     plt.close()
 
