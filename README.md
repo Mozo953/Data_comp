@@ -1,4 +1,4 @@
-# Odor Detection Competition
+# Gaz Detection Competition
 
 Repo reproductible pour le projet de prediction d'odeurs.
 
