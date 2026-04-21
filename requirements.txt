@@ -1,11 +1,21 @@
+# Core data stack
 numpy>=2.2
 pandas>=2.3
+scipy>=1.14
+
+# Modeling
 scikit-learn>=1.7
 xgboost>=3.2
+catboost>=1.2
+optuna>=4.0
+
+# Plots and reports
 matplotlib>=3.10
 seaborn>=0.13
+ydata-profiling>=4.12
+
+# Notebooks
 jupyter>=1.1
 notebook>=7.4
-ydata-profiling>=4.12
-optuna>=4.0
-catboost>=1.2
+ipykernel>=6.29
+nbformat>=5.10

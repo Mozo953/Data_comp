@@ -1,0 +1,219 @@
+{
+  "generated_at_utc": "20260420T162942Z",
+  "model": "CV3 Blender_ET3_allpool + rowaggbs with fixed piecewise Humidity sample weights (model50)",
+  "training": {
+    "cv_folds": 3,
+    "random_state": 42,
+    "n_jobs": -1,
+    "metric": "WRMSE = sqrt(mean_over_rows_targets(row_weight * squared_error)) with fixed piecewise Humidity sample weights",
+    "postprocessing": false
+  },
+  "preprocessing": {
+    "clipping": {
+      "tail_quantile_low": 0.01,
+      "tail_quantile_high": 0.99,
+      "feature_count": 12
+    },
+    "environment_removed_before_feature_engineering": true,
+    "forbidden_feature_patterns": [
+      "Humidity",
+      "humidity_*",
+      "humidity_times_*",
+      "support_gap"
+    ]
+  },
+  "feature_views": {
+    "raw_clean_count": 12,
+    "rowagg_clean_count": 26,
+    "allpool_noenv_count": 197,
+    "rowagg_feature_names": [
+      "row_mean",
+      "row_std",
+      "row_p10",
+      "row_p25",
+      "row_p50",
+      "row_p75",
+      "row_p90",
+      "row_iqr",
+      "row_mad",
+      "row_l1",
+      "row_l2",
+      "block_a_mean",
+      "block_b_mean",
+      "support_mean",
+      "block_gap",
+      "log_M12",
+      "log_M15",
+      "log_M4",
+      "log_M7",
+      "log_row_l1",
+      "log_row_l2",
+      "M12_over_row_mean",
+      "M4_over_row_mean",
+      "R_over_row_mean",
+      "M12_minus_block_a_mean",
+      "M4_minus_block_b_mean"
+    ],
+    "allpool_first_40_feature_names": [
+      "M12",
+      "M13",
+      "M14",
+      "M15",
+      "M4",
+      "M5",
+      "M6",
+      "M7",
+      "R",
+      "S1",
+      "S2",
+      "S3",
+      "row_mean",
+      "row_std",
+      "row_p10",
+      "row_p25",
+      "row_p50",
+      "row_p75",
+      "row_p90",
+      "row_iqr",
+      "row_mad",
+      "row_l1",
+      "row_l2",
+      "block_a_mean",
+      "block_b_mean",
+      "support_mean",
+      "block_gap",
+      "log_row_l1",
+      "log_row_l2",
+      "log_M12",
+      "M12_over_row_mean",
+      "M12_minus_block_a_mean",
+      "log_M13",
+      "M13_over_row_mean",
+      "M13_minus_block_a_mean",
+      "log_M14",
+      "M14_over_row_mean",
+      "M14_minus_block_a_mean",
+      "log_M15",
+      "M15_over_row_mean"
+    ]
+  },
+  "sample_weighting": {
+    "preset": "model50",
+    "rule_order": [
+      {
+        "[0.00, 0.20)": 1.0
+      },
+      {
+        "[0.20, 0.39)": 1.1
+      },
+      {
+        "[0.39, 0.50)": 1.35
+      },
+      {
+        "[0.50, 0.68)": 1.0
+      },
+      {
+        "[0.68, 0.80)": 1.25
+      },
+      {
+        "[0.80, 1.00]": 1.25
+      }
+    ],
+    "env_weight_bins_path": "artifacts_extratrees_corr_optuna\\50_blender_et3_rowaggbs_piecewise_model50_cv3\\blender_et3_rowaggbs_piecewise_model50_cv3_20260420T162942Z_env_weight_bins.csv",
+    "sample_weights_path": "artifacts_extratrees_corr_optuna\\50_blender_et3_rowaggbs_piecewise_model50_cv3\\blender_et3_rowaggbs_piecewise_model50_cv3_20260420T162942Z_sample_weights.csv"
+  },
+  "base_models": {
+    "et_rowagg_mf06_bs": {
+      "dataset": "rowagg_clean",
+      "params": {
+        "n_estimators": 500,
+        "max_features": 0.6,
+        "bootstrap": true,
+        "random_state": 42,
+        "max_depth": 28,
+        "min_samples_split": 5,
+        "min_samples_leaf": 2,
+        "max_samples": 0.8051184329566651
+      },
+      "cv3_weighted_wrmse": 0.0299656864773764,
+      "oof_path": "artifacts_extratrees_corr_optuna\\50_blender_et3_rowaggbs_piecewise_model50_cv3\\et_rowagg_mf06_bs_oof.csv",
+      "test_path": "artifacts_extratrees_corr_optuna\\50_blender_et3_rowaggbs_piecewise_model50_cv3\\et_rowagg_mf06_bs_test.csv"
+    },
+    "et_allpool_3": {
+      "dataset": "allpool_noenv",
+      "params": {
+        "n_estimators": 300,
+        "max_depth": 17,
+        "min_samples_split": 13,
+        "min_samples_leaf": 5,
+        "max_features": 0.25,
+        "bootstrap": false,
+        "random_state": 83,
+        "n_jobs": -1
+      },
+      "cv3_weighted_wrmse": 0.025559205286322204,
+      "oof_path": "artifacts_extratrees_corr_optuna\\50_blender_et3_rowaggbs_piecewise_model50_cv3\\et_allpool_3_oof.csv",
+      "test_path": "artifacts_extratrees_corr_optuna\\50_blender_et3_rowaggbs_piecewise_model50_cv3\\et_allpool_3_test.csv"
+    }
+  },
+  "simplex": {
+    "alpha_vector": [
+      1.0,
+      1.0
+    ],
+    "dirichlet_samples": 5000,
+    "dirichlet_batch_size": 1024,
+    "oof_weighted_wrmse": 0.02464593586483973,
+    "winner_counts": {
+      "et_allpool_3": 15,
+      "et_rowagg_mf06_bs": 1
+    },
+    "target_weights_path": "artifacts_extratrees_corr_optuna\\50_blender_et3_rowaggbs_piecewise_model50_cv3\\blender_et3_rowaggbs_piecewise_model50_cv3_20260420T162942Z_target_simplex_weights.csv",
+    "blended_oof_modelspace_path": "artifacts_extratrees_corr_optuna\\50_blender_et3_rowaggbs_piecewise_model50_cv3\\blender_et3_rowaggbs_piecewise_model50_cv3_20260420T162942Z_oof_blend_modelspace.csv",
+    "blended_oof_full_path": "artifacts_extratrees_corr_optuna\\50_blender_et3_rowaggbs_piecewise_model50_cv3\\blender_et3_rowaggbs_piecewise_model50_cv3_20260420T162942Z_oof_blend_full.csv",
+    "blended_test_modelspace_path": "artifacts_extratrees_corr_optuna\\50_blender_et3_rowaggbs_piecewise_model50_cv3\\blender_et3_rowaggbs_piecewise_model50_cv3_20260420T162942Z_test_blend_modelspace.csv"
+  },
+  "artifacts": {
+    "submission_path": "artifacts_extratrees_corr_optuna\\50_blender_et3_rowaggbs_piecewise_model50_cv3\\blender_et3_rowaggbs_piecewise_model50_cv3_20260420T162942Z.csv",
+    "summary_path": "artifacts_extratrees_corr_optuna\\50_blender_et3_rowaggbs_piecewise_model50_cv3\\blender_et3_rowaggbs_piecewise_model50_cv3_20260420T162942Z.json",
+    "feature_manifest_path": "artifacts_extratrees_corr_optuna\\50_blender_et3_rowaggbs_piecewise_model50_cv3\\blender_et3_rowaggbs_piecewise_model50_cv3_20260420T162942Z_feature_manifest.json",
+    "blended_oof_full_path": "artifacts_extratrees_corr_optuna\\50_blender_et3_rowaggbs_piecewise_model50_cv3\\blender_et3_rowaggbs_piecewise_model50_cv3_20260420T162942Z_oof_blend_full.csv",
+    "base_model_predictions_dir": "artifacts_extratrees_corr_optuna\\50_blender_et3_rowaggbs_piecewise_model50_cv3"
+  },
+  "fold_reports": {
+    "et_rowagg_mf06_bs": [
+      {
+        "fold": 1,
+        "fit_rows": 135288,
+        "valid_rows": 67645
+      },
+      {
+        "fold": 2,
+        "fit_rows": 135289,
+        "valid_rows": 67644
+      },
+      {
+        "fold": 3,
+        "fit_rows": 135289,
+        "valid_rows": 67644
+      }
+    ],
+    "et_allpool_3": [
+      {
+        "fold": 1,
+        "fit_rows": 135288,
+        "valid_rows": 67645
+      },
+      {
+        "fold": 2,
+        "fit_rows": 135289,
+        "valid_rows": 67644
+      },
+      {
+        "fold": 3,
+        "fit_rows": 135289,
+        "valid_rows": 67644
+      }
+    ]
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "generated_at_utc": "20260420T164429Z",
+  "figure_path": "artifacts_extratrees_corr_optuna\\50_blender_et3_rowaggbs_piecewise_model50_cv3\\model50_piecewise_humidity_loss_20260420T164429Z.svg",
+  "curve_csv_path": "artifacts_extratrees_corr_optuna\\50_blender_et3_rowaggbs_piecewise_model50_cv3\\model50_piecewise_humidity_loss_20260420T164429Z.csv",
+  "count_axis_cap": 21000,
+  "loss_axis_cap": 0.09,
+  "total_train_rows": 202933,
+  "total_test_rows": 134673,
+  "loss_source_file": "blender_et3_rowaggbs_piecewise_model50_cv3_20260420T162942Z_oof_blend_modelspace.csv",
+  "loss_weighting": "sample-file",
+  "sample_weight_source_file": "blender_et3_rowaggbs_piecewise_model50_cv3_20260420T162942Z_sample_weights.csv"
+}

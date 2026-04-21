@@ -1,0 +1,8 @@
+{
+  "generated_at_utc": "20260420T164517Z",
+  "source_bins_file": "artifacts_extratrees_corr_optuna\\50_blender_et3_rowaggbs_piecewise_model50_cv3\\blender_et3_rowaggbs_piecewise_model50_cv3_20260420T162942Z_env_weight_bins.csv",
+  "figure_path": "artifacts_extratrees_corr_optuna\\50_blender_et3_rowaggbs_piecewise_model50_cv3\\model50_piecewise_weight_bins_20260420T164517Z.svg",
+  "weight_min": 1.0,
+  "weight_max": 1.35,
+  "bin_count": 6
+}
