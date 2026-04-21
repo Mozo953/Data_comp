@@ -109,7 +109,7 @@ def main() -> None:
     elements.extend(
         [
             f'<polyline points="{curve}" fill="none" stroke="#dc2626" stroke-width="4"/>',
-            f'<text x="{width / 2:.1f}" y="{height - 22}" text-anchor="middle" font-size="16" font-family="Arial" fill="#111827">Humidity / Env</text>',
+            f'<text x="{width / 2:.1f}" y="{height - 22}" text-anchor="middle" font-size="16" font-family="Arial" fill="#111827">Humidity</text>',
             f'<text x="28" y="{margin_top + plot_height / 2:.1f}" text-anchor="middle" font-size="16" font-family="Arial" fill="#111827" transform="rotate(-90 28 {margin_top + plot_height / 2:.1f})">Sample weight</text>',
             f'<text x="{margin_left + plot_width - 150}" y="{margin_top + 34}" font-size="14" font-family="Arial" fill="#dc2626">weight_smooth</text>',
         ]

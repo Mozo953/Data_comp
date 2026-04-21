@@ -71,7 +71,6 @@ def main() -> None:
         linewidths=0.5,
         cbar_kws={"shrink": 0.8, "label": "Correlation"},
     )
-    plt.title(f"X_train Feature Correlation Heatmap ({args.method})")
     plt.tight_layout()
 
     heatmap_png = args.output_dir / f"x_train_corr_heatmap_{args.method}.png"

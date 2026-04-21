@@ -6,23 +6,41 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+HUMIDITY_COLUMN = "Humidity"
 COMPETITION_FEATURES = [
-    "Env",
-    "X12",
-    "X13",
-    "X14",
-    "X15",
-    "X4",
-    "X5",
-    "X6",
-    "X7",
-    "Z",
-    "Y1",
-    "Y2",
-    "Y3",
+    "Humidity",
+    "M12",
+    "M13",
+    "M14",
+    "M15",
+    "M4",
+    "M5",
+    "M6",
+    "M7",
+    "R",
+    "S1",
+    "S2",
+    "S3",
 ]
-MODELING_FEATURES = [feature for feature in COMPETITION_FEATURES if feature != "Env"]
-COMPETITION_TARGETS = [f"d{i:02d}" for i in range(1, 24)]
+MODELING_FEATURES = [feature for feature in COMPETITION_FEATURES if feature != HUMIDITY_COLUMN]
+COMPETITION_TARGETS = [f"c{i:02d}" for i in range(1, 24)]
+
+LEGACY_FEATURE_RENAME = {
+    "Env": "Humidity",
+    "X12": "M12",
+    "X13": "M13",
+    "X14": "M14",
+    "X15": "M15",
+    "X4": "M4",
+    "X5": "M5",
+    "X6": "M6",
+    "X7": "M7",
+    "Z": "R",
+    "Y1": "S1",
+    "Y2": "S2",
+    "Y3": "S3",
+}
+LEGACY_TARGET_RENAME = {f"d{i:02d}": f"c{i:02d}" for i in range(1, 24)}
 
 
 @dataclass(frozen=True)
@@ -67,35 +85,32 @@ class TargetSchema:
         return pd.DataFrame(expanded, columns=self.original_targets, index=predictions.index)
 
 
+def standardize_feature_columns(features: pd.DataFrame) -> pd.DataFrame:
+    return features.rename(columns=LEGACY_FEATURE_RENAME).copy()
+
+
+def standardize_target_columns(targets: pd.DataFrame) -> pd.DataFrame:
+    return targets.rename(columns=LEGACY_TARGET_RENAME).copy()
+
+
 def load_competition_data(data_dir: Path | str = ".") -> CompetitionData:
     data_path = Path(data_dir)
-    x_train = pd.read_csv(data_path / "X_train.csv")
-    x_test = pd.read_csv(data_path / "X_test.csv")
-    y_train = pd.read_csv(data_path / "y_train.csv")
+    x_train = standardize_feature_columns(pd.read_csv(data_path / "X_train.csv"))
+    x_test = standardize_feature_columns(pd.read_csv(data_path / "X_test.csv"))
+    y_train = standardize_target_columns(pd.read_csv(data_path / "y_train.csv"))
 
     if not x_train["ID"].equals(y_train["ID"]):
         raise ValueError("Training feature IDs do not match training target IDs.")
 
-    return CompetitionData(
-        x_train=x_train,
-        x_test=x_test,
-        y_train=y_train,
-    )
+    return CompetitionData(x_train=x_train, x_test=x_test, y_train=y_train)
 
 
 def load_modeling_data(data_dir: Path | str = ".") -> ModelingDataBundle:
-    """Load and prepare competition data in a single reusable call.
-
-    Returns raw X features, full Y targets (without ID), and the modeled targets
-    according to inferred duplicate/constant-target schema.
-    """
     data = load_competition_data(data_dir)
     schema = infer_target_schema(data.y_train)
-
     x_train_raw, x_test_raw, _ = prepare_feature_frames(data.x_train, data.x_test)
     y_train_full = data.y_train.drop(columns=["ID"]).copy() if "ID" in data.y_train.columns else data.y_train.copy()
     y_train_model = y_train_full[schema.model_targets].copy()
-
     return ModelingDataBundle(
         data=data,
         schema=schema,
@@ -107,20 +122,16 @@ def load_modeling_data(data_dir: Path | str = ".") -> ModelingDataBundle:
 
 
 def engineer_features(features: pd.DataFrame) -> pd.DataFrame:
-    base = features.copy()
+    base = standardize_feature_columns(features)
     if "ID" in base.columns:
         base = base.drop(columns=["ID"])
 
-    block_a = ["X12", "X13", "X14", "X15"]
-    block_b = ["X4", "X5", "X6", "X7"]
-    block_c = ["Y1", "Y2", "Y3", "Z"]
+    block_a = ["M12", "M13", "M14", "M15"]
+    block_b = ["M4", "M5", "M6", "M7"]
+    block_c = ["S1", "S2", "S3", "R"]
 
     engineered = base.copy()
-    for name, columns in {
-        "block_a": block_a,
-        "block_b": block_b,
-        "support": block_c,
-    }.items():
+    for name, columns in {"block_a": block_a, "block_b": block_b, "support": block_c}.items():
         engineered[f"{name}_mean"] = base[columns].mean(axis=1)
         engineered[f"{name}_std"] = base[columns].std(axis=1)
         engineered[f"{name}_min"] = base[columns].min(axis=1)
@@ -128,34 +139,39 @@ def engineer_features(features: pd.DataFrame) -> pd.DataFrame:
         engineered[f"{name}_range"] = engineered[f"{name}_max"] - engineered[f"{name}_min"]
         engineered[f"{name}_energy"] = np.square(base[columns]).sum(axis=1)
 
-    aligned_pairs = [("X12", "X4"), ("X13", "X5"), ("X14", "X6"), ("X15", "X7")]
+    aligned_pairs = [("M12", "M4"), ("M13", "M5"), ("M14", "M6"), ("M15", "M7")]
     for left, right in aligned_pairs:
         engineered[f"{left}_minus_{right}"] = base[left] - base[right]
         engineered[f"{left}_plus_{right}"] = base[left] + base[right]
 
-    sequential_pairs = [("X12", "X13"), ("X13", "X14"), ("X14", "X15"), ("X4", "X5"), ("X5", "X6"), ("X6", "X7")]
+    sequential_pairs = [
+        ("M12", "M13"),
+        ("M13", "M14"),
+        ("M14", "M15"),
+        ("M4", "M5"),
+        ("M5", "M6"),
+        ("M6", "M7"),
+    ]
     for left, right in sequential_pairs:
         engineered[f"{left}_minus_{right}"] = base[left] - base[right]
 
     engineered["block_gap"] = engineered["block_a_mean"] - engineered["block_b_mean"]
     engineered["block_energy_gap"] = engineered["block_a_energy"] - engineered["block_b_energy"]
-    engineered["env_times_block_a"] = base["Env"] * engineered["block_a_mean"]
-    engineered["env_times_block_b"] = base["Env"] * engineered["block_b_mean"]
-    engineered["env_times_support"] = base["Env"] * engineered["support_mean"]
-    engineered["z_minus_y_mean"] = base["Z"] - base[["Y1", "Y2", "Y3"]].mean(axis=1)
-    engineered["y_spread"] = base[["Y1", "Y2", "Y3"]].max(axis=1) - base[["Y1", "Y2", "Y3"]].min(axis=1)
-
+    engineered["humidity_times_block_a"] = base["Humidity"] * engineered["block_a_mean"]
+    engineered["humidity_times_block_b"] = base["Humidity"] * engineered["block_b_mean"]
+    engineered["humidity_times_support"] = base["Humidity"] * engineered["support_mean"]
+    engineered["r_minus_s_mean"] = base["R"] - base[["S1", "S2", "S3"]].mean(axis=1)
+    engineered["s_spread"] = base[["S1", "S2", "S3"]].max(axis=1) - base[["S1", "S2", "S3"]].min(axis=1)
     return engineered
 
 
 def engineer_env_focus_features(features: pd.DataFrame) -> pd.DataFrame:
     base = _extract_feature_block(features, include_env=True)
     env_focus = base.copy()
-
     block_groups = {
-        "block_a": ["X12", "X13", "X14", "X15"],
-        "block_b": ["X4", "X5", "X6", "X7"],
-        "support": ["Y1", "Y2", "Y3", "Z"],
+        "block_a": ["M12", "M13", "M14", "M15"],
+        "block_b": ["M4", "M5", "M6", "M7"],
+        "support": ["S1", "S2", "S3", "R"],
     }
 
     block_means: dict[str, pd.Series] = {}
@@ -166,21 +182,20 @@ def engineer_env_focus_features(features: pd.DataFrame) -> pd.DataFrame:
         env_focus[f"{name}_range"] = base[columns].max(axis=1) - base[columns].min(axis=1)
 
     env_focus["block_gap"] = block_means["block_a"] - block_means["block_b"]
-    env_focus["support_gap"] = block_means["support"] - base["Env"]
-    env_focus["env_times_block_a"] = base["Env"] * block_means["block_a"]
-    env_focus["env_times_block_b"] = base["Env"] * block_means["block_b"]
-    env_focus["env_times_support"] = base["Env"] * block_means["support"]
+    env_focus["support_gap"] = block_means["support"] - base["Humidity"]
+    env_focus["humidity_times_block_a"] = base["Humidity"] * block_means["block_a"]
+    env_focus["humidity_times_block_b"] = base["Humidity"] * block_means["block_b"]
+    env_focus["humidity_times_support"] = base["Humidity"] * block_means["support"]
 
     for column in COMPETITION_FEATURES:
-        if column == "Env":
+        if column == "Humidity":
             continue
-        env_focus[f"{column}_minus_env"] = base[column] - base["Env"]
-
+        env_focus[f"{column}_minus_humidity"] = base[column] - base["Humidity"]
     return env_focus
 
 
 def _extract_feature_block(features: pd.DataFrame, *, include_env: bool = True) -> pd.DataFrame:
-    base = features.copy()
+    base = standardize_feature_columns(features)
     if "ID" in base.columns:
         base = base.drop(columns=["ID"])
     columns = COMPETITION_FEATURES if include_env else MODELING_FEATURES
@@ -198,9 +213,8 @@ def fit_feature_cleaning_profile(
     train_base = _extract_feature_block(x_train, include_env=True)
     lower_bounds = train_base.quantile(tail_quantile)
     upper_bounds = train_base.quantile(1.0 - tail_quantile)
-    lower_bounds["Env"] = 0.0
-    upper_bounds["Env"] = 1.0
-
+    lower_bounds["Humidity"] = 0.0
+    upper_bounds["Humidity"] = 1.0
     return FeatureCleaningProfile(
         lower_bounds=lower_bounds.reindex(COMPETITION_FEATURES),
         upper_bounds=upper_bounds.reindex(COMPETITION_FEATURES),
@@ -229,11 +243,8 @@ def raw_features(features: pd.DataFrame) -> pd.DataFrame:
 
 
 def infer_target_schema(targets: pd.DataFrame) -> TargetSchema:
-    if "ID" in targets.columns:
-        target_frame = targets.drop(columns=["ID"])
-    else:
-        target_frame = targets.copy()
-
+    targets = standardize_target_columns(targets)
+    target_frame = targets.drop(columns=["ID"]) if "ID" in targets.columns else targets.copy()
     original_targets = list(target_frame.columns)
     remaining = original_targets.copy()
     duplicate_groups: list[list[str]] = []
@@ -276,11 +287,14 @@ def infer_target_schema(targets: pd.DataFrame) -> TargetSchema:
 
 
 def compress_targets(targets: pd.DataFrame, schema: TargetSchema) -> pd.DataFrame:
+    targets = standardize_target_columns(targets)
     target_frame = targets.drop(columns=["ID"]) if "ID" in targets.columns else targets
     return target_frame[schema.model_targets].copy()
 
 
 def feature_target_signal(features: pd.DataFrame, targets: pd.DataFrame) -> pd.Series:
+    features = standardize_feature_columns(features)
+    targets = standardize_target_columns(targets)
     target_frame = targets.drop(columns=["ID"]) if "ID" in targets.columns else targets
     joined = pd.concat([features.reset_index(drop=True), target_frame.reset_index(drop=True)], axis=1)
     signal = joined.corr().loc[features.columns, target_frame.columns].abs().mean(axis=1)
@@ -316,6 +330,7 @@ def prune_correlated_features(
 
 
 def build_submission_frame(test_ids: pd.Series, predictions: pd.DataFrame) -> pd.DataFrame:
+    predictions = standardize_target_columns(predictions)
     submission = pd.DataFrame({"ID": test_ids.to_numpy()})
     for column in COMPETITION_TARGETS:
         submission[column] = np.clip(predictions[column].to_numpy(), 0.0, 1.0)

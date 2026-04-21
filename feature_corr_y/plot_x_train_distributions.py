@@ -16,7 +16,7 @@ from odor_competition.data import load_competition_data  # noqa: E402
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Plot histogram and KDE distribution for each X_train feature (Xi)."
+        description="Plot histogram and KDE distribution for each X_train feature."
     )
     parser.add_argument(
         "--data-dir",
@@ -66,7 +66,6 @@ def main() -> None:
             linewidth=0.3,
             alpha=0.6,
         )
-        ax.set_title(f"Histogram of {feature}")
         ax.set_xlabel(feature)
         ax.set_ylabel("Count")
         fig.tight_layout()
@@ -87,7 +86,6 @@ def main() -> None:
             )
         else:
             ax.text(0.5, 0.5, "Variance nulle: KDE indisponible", ha="center", va="center", transform=ax.transAxes)
-        ax.set_title(f"KDE Curve of {feature}")
         ax.set_xlabel(feature)
         ax.set_ylabel("Density")
         fig.tight_layout()

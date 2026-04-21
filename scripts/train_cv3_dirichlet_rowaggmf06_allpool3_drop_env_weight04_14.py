@@ -20,7 +20,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Model 42 clean rerun with custom sample weights: "
-            "weight=1.0 if Env<0.4 else 1.4. CV=3, no post-processing."
+            "weight=1.0 if Humidity<0.4 else 1.4. CV=3, no post-processing."
         )
     )
     parser.add_argument("--data-dir", default="src/odor_competition/data")
@@ -70,7 +70,7 @@ def load_clean_model42_module():
 
 def compute_env04_weights(env: pd.Series) -> pd.Series:
     values = np.where(env.to_numpy(dtype=np.float32) >= 0.4, 1.4, 1.0).astype(np.float32)
-    return pd.Series(values, index=env.index, name="env04_weight14")
+    return pd.Series(values, index=env.index, name="humidity04_weight14")
 
 
 def summarize_env04_bins(train_env: pd.Series, test_env: pd.Series) -> pd.DataFrame:
@@ -105,8 +105,8 @@ def main() -> None:
         max_test_rows=args.max_test_rows,
     )
 
-    env_train = bundle.data.x_train["Env"].copy()
-    env_test = bundle.data.x_test["Env"].copy()
+    env_train = bundle.data.x_train["Humidity"].copy()
+    env_test = bundle.data.x_test["Humidity"].copy()
     row_weights = compute_env04_weights(env_train)
     env_weight_bins = summarize_env04_bins(env_train, env_test)
 
@@ -121,7 +121,7 @@ def main() -> None:
     if len(alpha_vector) != 2 or np.any(alpha_vector <= 0):
         raise ValueError("--dirichlet-alpha-vector must contain exactly 2 positive values.")
 
-    log_progress("Model 42 clean variant: CV=3, Env dropped before FE, sample_weight=1.4 if Env>=0.4")
+    log_progress("Model 42 clean variant: CV=3, Humidity dropped before FE, sample_weight=1.4 if Humidity>=0.4")
     model_oofs, model_tests, full_views, fold_reports = clean.make_oof_and_test_predictions(
         x_train_noenv,
         bundle.y_train_model,
@@ -207,22 +207,22 @@ def main() -> None:
 
     summary = {
         "generated_at_utc": timestamp,
-        "model": "Clean CV3 model42 variant with Env>=0.4 weight=1.4",
+        "model": "Clean CV3 model42 variant with Humidity>=0.4 weight=1.4",
         "training": {
             "cv_folds": int(args.cv_folds),
             "random_state": int(args.random_state),
             "n_jobs": int(args.n_jobs),
-            "metric": "WRMSE = sqrt(mean_over_rows_targets(row_weight * squared_error)) with row_weight=1.4 if Env>=0.4 else 1.0",
+            "metric": "WRMSE = sqrt(mean_over_rows_targets(row_weight * squared_error)) with row_weight=1.4 if Humidity>=0.4 else 1.0",
             "postprocessing": False,
         },
         "preprocessing": {
             "clipping": full_views.clipping_profile,
             "environment_removed_before_feature_engineering": True,
-            "forbidden_feature_patterns": ["Env", "env_*", "env_times_*", "support_gap"],
+            "forbidden_feature_patterns": ["Humidity", "humidity_*", "humidity_times_*", "support_gap"],
         },
         "feature_views": feature_manifest,
         "sample_weighting": {
-            "rule": {"Env < 0.4": 1.0, "Env >= 0.4": 1.4},
+            "rule": {"Humidity < 0.4": 1.0, "Humidity >= 0.4": 1.4},
             "env_weight_bins_path": str(env_bins_path.relative_to(ROOT)),
         },
         "base_models": {

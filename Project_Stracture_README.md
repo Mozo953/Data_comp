@@ -55,4 +55,4 @@ python scripts/train_final_rf300.py --data-dir .
 jupyter notebook notebooks/13_final_rf300_submission.ipynb
 ```
 
-The final selected submission model is the raw-feature RandomForest with 300 trees and deterministic handling of `d15` plus the known duplicate target groups.
+The final selected submission model is the raw-feature RandomForest with 300 trees and deterministic handling of `c15` plus the known duplicate target groups.

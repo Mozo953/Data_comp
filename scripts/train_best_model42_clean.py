@@ -18,10 +18,10 @@ sys.path.insert(0, str(ROOT / "src"))
 from odor_competition.data import build_submission_frame, load_modeling_data  # noqa: E402
 
 
-RAW_COLUMNS = ["X12", "X13", "X14", "X15", "X4", "X5", "X6", "X7", "Z", "Y1", "Y2", "Y3"]
-BLOCK_A = ["X12", "X13", "X14", "X15"]
-BLOCK_B = ["X4", "X5", "X6", "X7"]
-SUPPORT = ["Z", "Y1", "Y2", "Y3"]
+RAW_COLUMNS = ["M12", "M13", "M14", "M15", "M4", "M5", "M6", "M7", "R", "S1", "S2", "S3"]
+BLOCK_A = ["M12", "M13", "M14", "M15"]
+BLOCK_B = ["M4", "M5", "M6", "M7"]
+SUPPORT = ["R", "S1", "S2", "S3"]
 MODEL_ORDER = ["et_rowagg_mf06_bs", "et_allpool_3"]
 
 
@@ -40,7 +40,7 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Clean reproduction of best model 42: CV3 ExtraTrees rowagg + allpool, "
-            "Env dropped before FE, Env>=0.6 sample_weight=1.2, Dirichlet blend."
+            "Humidity dropped before FE, Humidity>=0.6 sample_weight=1.2, Dirichlet blend."
         )
     )
     parser.add_argument("--data-dir", default="src/odor_competition/data")
@@ -99,8 +99,10 @@ def drop_environment_columns(frame: pd.DataFrame) -> pd.DataFrame:
         column
         for column in frame.columns
         if column != "ID"
-        and column != "Env"
+        and column != "Humidity"
         and column != "support_gap"
+        and not column.startswith("humidity_")
+        and not column.startswith("humidity_times_")
         and not column.startswith("env_")
         and not column.startswith("env_times_")
     ]
@@ -111,18 +113,20 @@ def validate_no_environment_columns(frame: pd.DataFrame, label: str) -> None:
     forbidden = [
         column
         for column in frame.columns
-        if column == "Env"
+        if column == "Humidity"
         or column == "support_gap"
+        or column.startswith("humidity_")
+        or column.startswith("humidity_times_")
         or column.startswith("env_")
         or column.startswith("env_times_")
     ]
     if forbidden:
-        raise ValueError(f"Environment leakage detected in {label}: {forbidden}")
+        raise ValueError(f"Humidity leakage detected in {label}: {forbidden}")
 
 
 def compute_env_weights(env: pd.Series) -> pd.Series:
     values = np.where(env.to_numpy(dtype=np.float32) >= 0.6, 1.2, 1.0).astype(np.float32)
-    return pd.Series(values, index=env.index, name="env_weight")
+    return pd.Series(values, index=env.index, name="humidity_weight")
 
 
 def summarize_env_bins(train_env: pd.Series, test_env: pd.Series) -> pd.DataFrame:
@@ -221,17 +225,17 @@ def build_rowagg_features(raw: pd.DataFrame, *, ratio_eps: float) -> pd.DataFram
     block_b_mean = blocks["block_b_mean"].to_numpy(dtype=np.float32)
 
     rowagg = pd.concat([stats, blocks], axis=1)
-    rowagg["log_X12"] = safe_log(raw["X12"])
-    rowagg["log_X15"] = safe_log(raw["X15"])
-    rowagg["log_X4"] = safe_log(raw["X4"])
-    rowagg["log_X7"] = safe_log(raw["X7"])
+    rowagg["log_M12"] = safe_log(raw["M12"])
+    rowagg["log_M15"] = safe_log(raw["M15"])
+    rowagg["log_M4"] = safe_log(raw["M4"])
+    rowagg["log_M7"] = safe_log(raw["M7"])
     rowagg["log_row_l1"] = safe_log(row_l1)
     rowagg["log_row_l2"] = safe_log(row_l2)
-    rowagg["X12_over_row_mean"] = raw["X12"].to_numpy(dtype=np.float32) / (row_mean + ratio_eps)
-    rowagg["X4_over_row_mean"] = raw["X4"].to_numpy(dtype=np.float32) / (row_mean + ratio_eps)
-    rowagg["Z_over_row_mean"] = raw["Z"].to_numpy(dtype=np.float32) / (row_mean + ratio_eps)
-    rowagg["X12_minus_block_a_mean"] = raw["X12"].to_numpy(dtype=np.float32) - block_a_mean
-    rowagg["X4_minus_block_b_mean"] = raw["X4"].to_numpy(dtype=np.float32) - block_b_mean
+    rowagg["M12_over_row_mean"] = raw["M12"].to_numpy(dtype=np.float32) / (row_mean + ratio_eps)
+    rowagg["M4_over_row_mean"] = raw["M4"].to_numpy(dtype=np.float32) / (row_mean + ratio_eps)
+    rowagg["R_over_row_mean"] = raw["R"].to_numpy(dtype=np.float32) / (row_mean + ratio_eps)
+    rowagg["M12_minus_block_a_mean"] = raw["M12"].to_numpy(dtype=np.float32) - block_a_mean
+    rowagg["M4_minus_block_b_mean"] = raw["M4"].to_numpy(dtype=np.float32) - block_b_mean
     return rowagg.astype(np.float32)
 
 
@@ -528,8 +532,8 @@ def main() -> None:
         max_test_rows=args.max_test_rows,
     )
 
-    env_train = bundle.data.x_train["Env"].copy()
-    env_test = bundle.data.x_test["Env"].copy()
+    env_train = bundle.data.x_train["Humidity"].copy()
+    env_test = bundle.data.x_test["Humidity"].copy()
     row_weights = compute_env_weights(env_train)
     env_weight_bins = summarize_env_bins(env_train, env_test)
 
@@ -542,7 +546,7 @@ def main() -> None:
     full_target_count = len(bundle.schema.original_targets)
     alpha_vector = np.asarray(args.dirichlet_alpha_vector, dtype=np.float32)
 
-    log_progress("Best model 42 clean: CV=3, Env dropped before FE, sample_weight=1.2 if Env>=0.6")
+    log_progress("Best model 42 clean: CV=3, Humidity dropped before FE, sample_weight=1.2 if Humidity>=0.6")
     model_oofs, model_tests, full_views, fold_reports = make_oof_and_test_predictions(
         x_train_noenv,
         bundle.y_train_model,
@@ -629,17 +633,17 @@ def main() -> None:
             "cv_folds": int(args.cv_folds),
             "random_state": int(args.random_state),
             "n_jobs": int(args.n_jobs),
-            "metric": "WRMSE = sqrt(mean_over_rows_targets(row_weight * squared_error)) with row_weight=1.2 if Env>=0.6 else 1.0",
+            "metric": "WRMSE = sqrt(mean_over_rows_targets(row_weight * squared_error)) with row_weight=1.2 if Humidity>=0.6 else 1.0",
             "postprocessing": False,
         },
         "preprocessing": {
             "clipping": full_views.clipping_profile,
             "environment_removed_before_feature_engineering": True,
-            "forbidden_feature_patterns": ["Env", "env_*", "env_times_*", "support_gap"],
+            "forbidden_feature_patterns": ["Humidity", "humidity_*", "humidity_times_*", "support_gap"],
         },
         "feature_views": feature_manifest,
         "sample_weighting": {
-            "rule": {"Env < 0.6": 1.0, "Env >= 0.6": 1.2},
+            "rule": {"Humidity < 0.6": 1.0, "Humidity >= 0.6": 1.2},
             "env_weight_bins_path": str(env_bins_path.relative_to(ROOT)),
         },
         "base_models": {

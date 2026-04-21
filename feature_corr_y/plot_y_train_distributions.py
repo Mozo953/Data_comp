@@ -16,18 +16,18 @@ from odor_competition.data import load_competition_data  # noqa: E402
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Plot the distribution of each Y_train target with seaborn histplot."
+        description="Plot the distribution of each y_train target with seaborn histplot."
     )
     parser.add_argument(
         "--data-dir",
         type=Path,
-        default=ROOT,
+        default=ROOT / "src" / "odor_competition" / "data",
         help="Directory containing X_train.csv, X_test.csv and y_train.csv.",
     )
     parser.add_argument(
         "--output-dir",
         type=Path,
-        default=ROOT / "feature_corr_y" / "plots_y_train",
+        default=ROOT / "feature_corr_y" / "resultats_y_train",
         help="Directory where histograms are saved.",
     )
     parser.add_argument(
@@ -66,7 +66,6 @@ def main() -> None:
             linewidth=0.3,
             alpha=0.6,
         )
-        ax.set_title(f"Histogram of {target}")
         ax.set_xlabel(target)
         ax.set_ylabel("Count")
         fig.tight_layout()
@@ -75,15 +74,18 @@ def main() -> None:
         plt.close(fig)
 
         fig, ax = plt.subplots(figsize=(8, 5))
-        sns.kdeplot(
-            values,
-            ax=ax,
-            color="#d62728",
-            fill=True,
-            alpha=0.2,
-            linewidth=2.0,
-        )
-        ax.set_title(f"KDE Curve of {target}")
+        if values.nunique(dropna=False) > 1:
+            sns.kdeplot(
+                values,
+                ax=ax,
+                color="#d62728",
+                fill=True,
+                alpha=0.2,
+                linewidth=2.0,
+                warn_singular=False,
+            )
+        else:
+            ax.text(0.5, 0.5, "Variance nulle: KDE indisponible", ha="center", va="center", transform=ax.transAxes)
         ax.set_xlabel(target)
         ax.set_ylabel("Density")
         fig.tight_layout()

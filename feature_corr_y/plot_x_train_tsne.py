@@ -19,7 +19,7 @@ from odor_competition.data import load_competition_data  # noqa: E402
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Compute and plot t-SNE for Xi features from X_train or X_test."
+        description="Compute and plot t-SNE for X features from X_train or X_test."
     )
     parser.add_argument(
         "--split",
@@ -131,7 +131,6 @@ def main() -> None:
     else:
         sns.scatterplot(data=out_df, x="tsne_1", y="tsne_2", s=22, alpha=0.85, linewidth=0)
 
-    plt.title(f"t-SNE projection of X_{args.split} Xi features")
     plt.xlabel("t-SNE 1")
     plt.ylabel("t-SNE 2")
     plt.tight_layout()

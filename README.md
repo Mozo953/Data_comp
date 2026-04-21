@@ -4,7 +4,7 @@ Final project code and reports for Competition 1.
 
 ## Task
 
-Predict `d01` to `d23` from the 13 sensor measurements in `X_train.csv`. The evaluation uses a weighted RMSE-style metric, and the test set is known to be shifted relative to training conditions.
+Predict `c01` to `c23` from the 13 sensor measurements in `X_train.csv`. The evaluation uses a weighted RMSE-style metric, and the test set is known to be shifted relative to training conditions.
 
 ## Final Deliverables
 

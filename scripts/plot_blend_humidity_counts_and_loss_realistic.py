@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -9,6 +10,9 @@ import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / "src"))
+
+from odor_competition.data import standardize_feature_columns, standardize_target_columns  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
@@ -25,9 +29,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--report-prefix", default="humidity_loss")
     parser.add_argument(
         "--loss-weighting",
-        choices=["binary-env", "model46", "sample-file", "none"],
-        default="binary-env",
-        help="binary-env: 1.2 if Env>=0.6; model46: 1.4 if Env>=0.4; sample-file: read sample_weights_*.csv; none: unweighted.",
+        choices=["binary-humidity", "binary-env", "model46", "sample-file", "none"],
+        default="binary-humidity",
+        help="binary-humidity: 1.2 if Humidity>=0.6; model46: 1.4 if Humidity>=0.4; sample-file: read sample_weights_*.csv; none: unweighted.",
     )
     parser.add_argument("--sample-weights-file", default=None)
     return parser.parse_args()
@@ -107,7 +111,7 @@ def find_oof_file(source_dir: Path, explicit_name: str | None) -> Path:
 
 
 def load_oof_predictions(oof_path: Path, y_train: pd.DataFrame) -> pd.DataFrame:
-    oof = pd.read_csv(oof_path)
+    oof = standardize_target_columns(pd.read_csv(oof_path))
     if "Unnamed: 0" in oof.columns:
         oof = oof.rename(columns={"Unnamed: 0": "row_index"})
     if "row_index" in oof.columns:
@@ -157,15 +161,15 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     oof_path = find_oof_file(source_dir, args.oof_file)
-    x_train = pd.read_csv(data_dir / "X_train.csv", usecols=["Env"])
-    x_test = pd.read_csv(data_dir / "X_test.csv", usecols=["Env"])
-    y_train_raw = pd.read_csv(data_dir / "y_train.csv")
+    x_train = standardize_feature_columns(pd.read_csv(data_dir / "X_train.csv", usecols=lambda column: column in {"Env", "Humidity"}))
+    x_test = standardize_feature_columns(pd.read_csv(data_dir / "X_test.csv", usecols=lambda column: column in {"Env", "Humidity"}))
+    y_train_raw = standardize_target_columns(pd.read_csv(data_dir / "y_train.csv"))
     y_train = y_train_raw.drop(columns=["ID"]) if "ID" in y_train_raw.columns else y_train_raw
     oof = load_oof_predictions(oof_path, y_train)
     y_model = y_train[oof.columns].copy()
 
-    train_env = x_train["Env"].to_numpy(dtype=np.float64)
-    test_env = x_test["Env"].to_numpy(dtype=np.float64)
+    train_env = x_train["Humidity"].to_numpy(dtype=np.float64)
+    test_env = x_test["Humidity"].to_numpy(dtype=np.float64)
     sample_weight_source = None
     if args.loss_weighting == "sample-file":
         row_weights, sample_weight_source = load_sample_weights(source_dir, args.sample_weights_file, len(train_env))

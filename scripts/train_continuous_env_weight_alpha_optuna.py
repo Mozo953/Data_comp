@@ -26,7 +26,7 @@ W_MAX = 2.0
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
-            "Continuous Env-weighted rowagg/allpool Dirichlet pipeline with OOF baseline "
+            "Continuous Humidity-weighted rowagg/allpool Dirichlet pipeline with OOF baseline "
             "difficulty and alpha-only Optuna weighting."
         )
     )
@@ -71,6 +71,20 @@ def verbose_log(enabled: bool, message: str) -> None:
 def resolve_path(raw_path: str | Path) -> Path:
     path = Path(raw_path)
     return path if path.is_absolute() else (ROOT / path).resolve()
+
+
+def safe_file_stem(raw_value: str) -> str:
+    stem = Path(str(raw_value)).name.strip()
+    for char in '<>:"/\\|?*':
+        stem = stem.replace(char, "_")
+    return stem or "continuous_env_weight_alpha_optuna"
+
+
+def display_path(path: Path) -> str:
+    try:
+        return str(path.relative_to(ROOT))
+    except ValueError:
+        return str(path)
 
 
 def load_clean_model42_module():
@@ -169,7 +183,7 @@ def build_env_bin_frame(train_env: pd.Series, test_env: pd.Series, sample_error:
     train_values = train_env.to_numpy(dtype=np.float64)
     test_values = test_env.to_numpy(dtype=np.float64)
     if np.unique(train_values).size < 2:
-        raise ValueError("Env has fewer than 2 unique train values; quantile binning is impossible.")
+        raise ValueError("Humidity has fewer than 2 unique train values; quantile binning is impossible.")
 
     _, edges = pd.qcut(train_values, q=bin_count, retbins=True, duplicates="drop")
     edges = np.unique(edges.astype(np.float64))
@@ -325,8 +339,8 @@ def main() -> None:
         max_test_rows=args.max_test_rows,
     )
     y_train = bundle.y_train_model
-    env_train = bundle.data.x_train["Env"].copy()
-    env_test = bundle.data.x_test["Env"].copy()
+    env_train = bundle.data.x_train["Humidity"].copy()
+    env_test = bundle.data.x_test["Humidity"].copy()
     x_train_noenv = clean.drop_environment_columns(bundle.data.x_train)
     x_test_noenv = clean.drop_environment_columns(bundle.data.x_test)
     clean.validate_no_environment_columns(x_train_noenv, "x_train_noenv")
@@ -525,9 +539,10 @@ def main() -> None:
         raise ValueError(f"Unexpected feature counts: {feature_manifest}")
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    submission_prefix = safe_file_stem(str(args.submission_prefix))
     paths = {
-        "submission": output_dir / f"{args.submission_prefix}_{timestamp}.csv",
-        "summary": output_dir / f"{args.submission_prefix}_{timestamp}.json",
+        "submission": output_dir / f"{submission_prefix}_{timestamp}.csv",
+        "summary": output_dir / f"{submission_prefix}_{timestamp}.json",
         "loss_curve": output_dir / f"loss_curve_{timestamp}.csv",
         "ratio_curve": output_dir / f"ratio_curve_{timestamp}.csv",
         "weight_curve": output_dir / f"weight_curve_{timestamp}.csv",
@@ -539,6 +554,8 @@ def main() -> None:
         "feature_manifest": output_dir / f"feature_manifest_{timestamp}.json",
         "optuna_trials": output_dir / f"optuna_trials_{timestamp}.csv",
     }
+    for path in paths.values():
+        path.parent.mkdir(parents=True, exist_ok=True)
 
     submission.to_csv(paths["submission"], index=False)
     final_curves[
@@ -571,7 +588,7 @@ def main() -> None:
     final_curves.to_csv(paths["weight_curve"], index=False)
     pd.DataFrame(
         {
-            "Env": env_train.to_numpy(dtype=np.float32),
+            "Humidity": env_train.to_numpy(dtype=np.float32),
             "baseline_sample_error": baseline_sample_error.to_numpy(dtype=np.float32),
             "sample_weight": final_sample_weights.to_numpy(dtype=np.float32),
         },
@@ -584,16 +601,17 @@ def main() -> None:
     paths["feature_manifest"].write_text(json.dumps(feature_manifest, indent=2), encoding="utf-8")
 
     for model_name in clean.MODEL_ORDER:
+        (output_dir / f"{model_name}_baseline_oof.csv").parent.mkdir(parents=True, exist_ok=True)
         baseline_oofs[model_name].to_csv(output_dir / f"{model_name}_baseline_oof.csv", index=True)
         weighted_oofs[model_name].to_csv(output_dir / f"{model_name}_weighted_oof.csv", index=True)
         weighted_tests[model_name].to_csv(output_dir / f"{model_name}_weighted_test.csv", index=True)
 
     study.trials_dataframe().to_csv(paths["optuna_trials"], index=False)
 
-    relative_paths = {name: str(path.relative_to(ROOT)) for name, path in paths.items()}
+    relative_paths = {name: display_path(path) for name, path in paths.items()}
     summary = {
         "generated_at_utc": timestamp,
-        "model": "Continuous Env-weighted rowagg/allpool Dirichlet pipeline with alpha-optimized D*R weights",
+        "model": "Continuous Humidity-weighted rowagg/allpool Dirichlet pipeline with alpha-optimized D*R weights",
         "training": {
             "cv_folds": int(args.cv_folds),
             "random_state": int(args.random_state),
@@ -604,12 +622,12 @@ def main() -> None:
         "preprocessing": {
             "clipping": full_views.clipping_profile,
             "environment_removed_before_feature_engineering": True,
-            "forbidden_feature_patterns": ["Env", "env_*", "env_times_*", "support_gap"],
+            "forbidden_feature_patterns": ["Humidity", "humidity_*", "humidity_times_*", "support_gap"],
         },
         "feature_views": feature_manifest,
         "sample_weighting": {
             "formula": "w(b)=clip(w_min + alpha * D(b) * R(b), w_min, w_max)",
-            "sample_formula": "w_j = w(b(Env_j))",
+            "sample_formula": "w_j = w(b(Humidity_j))",
             "difficulty_formula": "D(b)=(ell(b)-min_b ell(b))/(max_b ell(b)-min_b ell(b)+eps), ell(b)=mean OOF baseline sample RMSE in bin b",
             "ratio_formula": "R(b)=max(0, p_test(b)/(p_train(b)+eps)-1)",
             "sample_error_formula": "e_j=sqrt((1/T)*sum_i(y_ji-yhat_ji)^2), averaged across the two baseline OOF models",
@@ -639,9 +657,9 @@ def main() -> None:
                 },
                 "baseline_oof_rmse": float(baseline_scores["et_rowagg_mf06_bs"]),
                 "weighted_oof_wrmse": float(weighted_scores["et_rowagg_mf06_bs"]),
-                "baseline_oof_path": str((output_dir / "et_rowagg_mf06_bs_baseline_oof.csv").relative_to(ROOT)),
-                "weighted_oof_path": str((output_dir / "et_rowagg_mf06_bs_weighted_oof.csv").relative_to(ROOT)),
-                "weighted_test_path": str((output_dir / "et_rowagg_mf06_bs_weighted_test.csv").relative_to(ROOT)),
+                "baseline_oof_path": display_path(output_dir / "et_rowagg_mf06_bs_baseline_oof.csv"),
+                "weighted_oof_path": display_path(output_dir / "et_rowagg_mf06_bs_weighted_oof.csv"),
+                "weighted_test_path": display_path(output_dir / "et_rowagg_mf06_bs_weighted_test.csv"),
             },
             "et_allpool_3": {
                 "dataset": "allpool_noenv",
@@ -657,9 +675,9 @@ def main() -> None:
                 },
                 "baseline_oof_rmse": float(baseline_scores["et_allpool_3"]),
                 "weighted_oof_wrmse": float(weighted_scores["et_allpool_3"]),
-                "baseline_oof_path": str((output_dir / "et_allpool_3_baseline_oof.csv").relative_to(ROOT)),
-                "weighted_oof_path": str((output_dir / "et_allpool_3_weighted_oof.csv").relative_to(ROOT)),
-                "weighted_test_path": str((output_dir / "et_allpool_3_weighted_test.csv").relative_to(ROOT)),
+                "baseline_oof_path": display_path(output_dir / "et_allpool_3_baseline_oof.csv"),
+                "weighted_oof_path": display_path(output_dir / "et_allpool_3_weighted_oof.csv"),
+                "weighted_test_path": display_path(output_dir / "et_allpool_3_weighted_test.csv"),
             },
         },
         "simplex": {

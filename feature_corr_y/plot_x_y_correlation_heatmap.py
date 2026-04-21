@@ -78,7 +78,6 @@ def main() -> None:
         linewidths=0.4,
         cbar_kws={"shrink": 0.8, "label": "Correlation"},
     )
-    plt.title(f"Cross-Correlation Heatmap: X_train Features vs Y_train Targets ({args.method})")
     plt.xlabel("Y_train targets")
     plt.ylabel("X_train features")
     plt.tight_layout()

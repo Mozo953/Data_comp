@@ -9,6 +9,7 @@ import pandas as pd
 from sklearn.ensemble import ExtraTreesRegressor
 from sklearn.model_selection import KFold
 from pathlib import Path
+from src.odor_competition.data import standardize_feature_columns, standardize_target_columns
 from src.odor_competition.metrics import competition_rmse
 
 # Configuration
@@ -29,14 +30,14 @@ print(f"\n✓ Paramètres chargés depuis: {PARAMS_JSON}")
 print(f"  Params: {best_params}")
 
 # Load data
-X_train = pd.read_csv(f"{DATA_DIR}/X_train.csv")
-y_train = pd.read_csv(f"{DATA_DIR}/y_train.csv")
+X_train = standardize_feature_columns(pd.read_csv(f"{DATA_DIR}/X_train.csv"))
+y_train = standardize_target_columns(pd.read_csv(f"{DATA_DIR}/y_train.csv"))
 
 print(f"\n✓ Données chargées")
 print(f"  X_train shape: {X_train.shape}")
 print(f"  y_train shape: {y_train.shape}")
 
-# Get first actual target (skip ID) - prend d01 (colonne 1)
+# Get first actual target (skip ID) - prend c01 (colonne 1)
 first_target = y_train.columns[1]  # Skip ID column
 y_original = y_train[first_target].values
 print(f"\n✓ Target utilisée: {first_target}")

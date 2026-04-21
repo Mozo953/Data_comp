@@ -165,7 +165,7 @@ def main() -> None:
             f'<polyline points="{weight_smooth_line}" fill="none" stroke="#dc2626" stroke-width="3.5"/>',
             f'<polyline points="{loss_line}" fill="none" stroke="#2563eb" stroke-width="2.4" stroke-dasharray="8,6"/>',
             f'<polyline points="{ratio_line}" fill="none" stroke="#16a34a" stroke-width="2.4" stroke-dasharray="8,6"/>',
-            f'<text x="{width / 2:.1f}" y="{height - 24}" text-anchor="middle" font-size="16" font-family="Arial">Humidity / Env</text>',
+        f'<text x="{width / 2:.1f}" y="{height - 24}" text-anchor="middle" font-size="16" font-family="Arial">Humidity</text>',
             f'<text x="28" y="{margin_top + plot_height / 2:.1f}" text-anchor="middle" font-size="16" font-family="Arial" fill="#dc2626" transform="rotate(-90 28 {margin_top + plot_height / 2:.1f})">Sample weight</text>',
             f'<text x="{width - 28}" y="{margin_top + plot_height / 2:.1f}" text-anchor="middle" font-size="16" font-family="Arial" fill="#2563eb" transform="rotate(90 {width - 28} {margin_top + plot_height / 2:.1f})">Normalized loss / ratio</text>',
         ]
