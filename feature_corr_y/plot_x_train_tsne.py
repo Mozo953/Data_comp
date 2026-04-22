@@ -83,11 +83,11 @@ def main() -> None:
         x_split = x_split.loc[sampled_idx]
         source_df = data.x_train if args.split == "train" else data.x_test
         ids = pd.Series(ids, index=source_df.index).loc[sampled_idx].to_numpy()
-        env_values = source_df.loc[sampled_idx, "Env"].to_numpy() if "Env" in source_df.columns else None
+        humidity_values = source_df.loc[sampled_idx, "Humidity"].to_numpy() if "Humidity" in source_df.columns else None
     else:
         ids = ids.to_numpy() if hasattr(ids, "to_numpy") else ids
         source_df = data.x_train if args.split == "train" else data.x_test
-        env_values = source_df["Env"].to_numpy() if "Env" in source_df.columns else None
+        humidity_values = source_df["Humidity"].to_numpy() if "Humidity" in source_df.columns else None
 
     scaler = StandardScaler()
     x_scaled = scaler.fit_transform(x_split)
@@ -110,19 +110,19 @@ def main() -> None:
         }
     )
 
-    if env_values is not None:
-        out_df["Env"] = env_values
+    if humidity_values is not None:
+        out_df["Humidity"] = humidity_values
 
     csv_path = args.output_dir / f"x_{args.split}_tsne.csv"
     out_df.to_csv(csv_path, index=False)
 
     plt.figure(figsize=(10, 8))
-    if "Env" in out_df.columns:
+    if "Humidity" in out_df.columns:
         sns.scatterplot(
             data=out_df,
             x="tsne_1",
             y="tsne_2",
-            hue="Env",
+            hue="Humidity",
             palette="viridis",
             s=22,
             alpha=0.85,

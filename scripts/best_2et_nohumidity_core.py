@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import argparse
 import json
@@ -94,7 +94,7 @@ def maybe_subsample_bundle(bundle, *, max_train_rows: int | None, max_test_rows:
     )
 
 
-def drop_environment_columns(frame: pd.DataFrame) -> pd.DataFrame:
+def drop_humidity_columns(frame: pd.DataFrame) -> pd.DataFrame:
     keep_columns = [
         column
         for column in frame.columns
@@ -103,13 +103,11 @@ def drop_environment_columns(frame: pd.DataFrame) -> pd.DataFrame:
         and column != "support_gap"
         and not column.startswith("humidity_")
         and not column.startswith("humidity_times_")
-        and not column.startswith("env_")
-        and not column.startswith("env_times_")
     ]
     return frame.loc[:, keep_columns].copy()
 
 
-def validate_no_environment_columns(frame: pd.DataFrame, label: str) -> None:
+def validate_no_humidity_columns(frame: pd.DataFrame, label: str) -> None:
     forbidden = [
         column
         for column in frame.columns
@@ -117,28 +115,26 @@ def validate_no_environment_columns(frame: pd.DataFrame, label: str) -> None:
         or column == "support_gap"
         or column.startswith("humidity_")
         or column.startswith("humidity_times_")
-        or column.startswith("env_")
-        or column.startswith("env_times_")
     ]
     if forbidden:
         raise ValueError(f"Humidity leakage detected in {label}: {forbidden}")
 
 
-def compute_env_weights(env: pd.Series) -> pd.Series:
-    values = np.where(env.to_numpy(dtype=np.float32) >= 0.6, 1.2, 1.0).astype(np.float32)
-    return pd.Series(values, index=env.index, name="humidity_weight")
+def compute_humidity_weights(humidity: pd.Series) -> pd.Series:
+    values = np.where(humidity.to_numpy(dtype=np.float32) >= 0.6, 1.2, 1.0).astype(np.float32)
+    return pd.Series(values, index=humidity.index, name="humidity_weight")
 
 
-def summarize_env_bins(train_env: pd.Series, test_env: pd.Series) -> pd.DataFrame:
+def summarize_humidity_bins(train_humidity: pd.Series, test_humidity: pd.Series) -> pd.DataFrame:
     bins = [
-        ("[0.0, 0.2)", train_env < 0.2, test_env < 0.2, 1.0),
-        ("[0.2, 0.6)", (train_env >= 0.2) & (train_env < 0.6), (test_env >= 0.2) & (test_env < 0.6), 1.0),
-        ("[0.6, 1.0]", train_env >= 0.6, test_env >= 0.6, 1.2),
+        ("[0.0, 0.2)", train_humidity < 0.2, test_humidity < 0.2, 1.0),
+        ("[0.2, 0.6)", (train_humidity >= 0.2) & (train_humidity < 0.6), (test_humidity >= 0.2) & (test_humidity < 0.6), 1.0),
+        ("[0.6, 1.0]", train_humidity >= 0.6, test_humidity >= 0.6, 1.2),
     ]
     return pd.DataFrame(
         [
             {
-                "env_interval": interval,
+                "humidity_interval": interval,
                 "train_count": int(train_mask.sum()),
                 "test_count": int(test_mask.sum()),
                 "fixed_weight": float(weight),
@@ -284,15 +280,15 @@ def build_allpool_features(raw: pd.DataFrame, *, ratio_eps: float) -> pd.DataFra
 
 
 def build_feature_views(
-    fit_noenv: pd.DataFrame,
-    pred_noenv: pd.DataFrame,
+    fit_nohumidity: pd.DataFrame,
+    pred_nohumidity: pd.DataFrame,
     *,
     tail_quantile: float,
     ratio_eps: float,
 ) -> FeatureViews:
     raw_fit, raw_pred, clipping_profile = clip_raw_features(
-        fit_noenv,
-        pred_noenv,
+        fit_nohumidity,
+        pred_nohumidity,
         tail_quantile=tail_quantile,
     )
     rowagg_fit = build_rowagg_features(raw_fit, ratio_eps=ratio_eps)
@@ -308,7 +304,7 @@ def build_feature_views(
         "allpool_fit": allpool_fit,
         "allpool_pred": allpool_pred,
     }.items():
-        validate_no_environment_columns(frame, label)
+        validate_no_humidity_columns(frame, label)
 
     return FeatureViews(
         rowagg_fit=rowagg_fit,
@@ -406,10 +402,10 @@ def fit_models_and_predict(
 
 
 def make_oof_and_test_predictions(
-    x_train_noenv: pd.DataFrame,
+    x_train_nohumidity: pd.DataFrame,
     y_train: pd.DataFrame,
     weights_train: pd.Series,
-    x_test_noenv: pd.DataFrame,
+    x_test_nohumidity: pd.DataFrame,
     *,
     cv_folds: int,
     random_state: int,
@@ -425,12 +421,12 @@ def make_oof_and_test_predictions(
     }
     fold_reports = {model_name: [] for model_name in MODEL_ORDER}
 
-    for fold_number, (fit_idx, valid_idx) in enumerate(cv.split(x_train_noenv), start=1):
-        fit_index = x_train_noenv.index[fit_idx]
-        valid_index = x_train_noenv.index[valid_idx]
+    for fold_number, (fit_idx, valid_idx) in enumerate(cv.split(x_train_nohumidity), start=1):
+        fit_index = x_train_nohumidity.index[fit_idx]
+        valid_index = x_train_nohumidity.index[valid_idx]
         views = build_feature_views(
-            x_train_noenv.loc[fit_index],
-            x_train_noenv.loc[valid_index],
+            x_train_nohumidity.loc[fit_index],
+            x_train_nohumidity.loc[valid_index],
             tail_quantile=tail_quantile,
             ratio_eps=ratio_eps,
         )
@@ -448,8 +444,8 @@ def make_oof_and_test_predictions(
         verbose_log(verbose, f"OOF fold {fold_number}/{cv_folds} ready")
 
     full_views = build_feature_views(
-        x_train_noenv,
-        x_test_noenv,
+        x_train_nohumidity,
+        x_test_nohumidity,
         tail_quantile=tail_quantile,
         ratio_eps=ratio_eps,
     )
@@ -532,15 +528,15 @@ def main() -> None:
         max_test_rows=args.max_test_rows,
     )
 
-    env_train = bundle.data.x_train["Humidity"].copy()
-    env_test = bundle.data.x_test["Humidity"].copy()
-    row_weights = compute_env_weights(env_train)
-    env_weight_bins = summarize_env_bins(env_train, env_test)
+    humidity_train = bundle.data.x_train["Humidity"].copy()
+    humidity_test = bundle.data.x_test["Humidity"].copy()
+    row_weights = compute_humidity_weights(humidity_train)
+    humidity_weight_bins = summarize_humidity_bins(humidity_train, humidity_test)
 
-    x_train_noenv = drop_environment_columns(bundle.data.x_train)
-    x_test_noenv = drop_environment_columns(bundle.data.x_test)
-    validate_no_environment_columns(x_train_noenv, "x_train_noenv")
-    validate_no_environment_columns(x_test_noenv, "x_test_noenv")
+    x_train_nohumidity = drop_humidity_columns(bundle.data.x_train)
+    x_test_nohumidity = drop_humidity_columns(bundle.data.x_test)
+    validate_no_humidity_columns(x_train_nohumidity, "x_train_nohumidity")
+    validate_no_humidity_columns(x_test_nohumidity, "x_test_nohumidity")
 
     target_multiplicities = get_target_multiplicities(bundle.schema, list(bundle.y_train_model.columns))
     full_target_count = len(bundle.schema.original_targets)
@@ -548,10 +544,10 @@ def main() -> None:
 
     log_progress("2ET nohumidity core: CV=3, Humidity dropped before FE, sample_weight=1.2 if Humidity>=0.6")
     model_oofs, model_tests, full_views, fold_reports = make_oof_and_test_predictions(
-        x_train_noenv,
+        x_train_nohumidity,
         bundle.y_train_model,
         row_weights,
-        x_test_noenv,
+        x_test_nohumidity,
         cv_folds=int(args.cv_folds),
         random_state=int(args.random_state),
         tail_quantile=float(args.tail_quantile),
@@ -598,17 +594,17 @@ def main() -> None:
     feature_manifest = {
         "raw_clean_count": int(full_views.raw_fit.shape[1]),
         "rowagg_clean_count": int(full_views.rowagg_fit.shape[1]),
-        "allpool_noenv_count": int(full_views.allpool_fit.shape[1]),
+        "allpool_nohumidity_count": int(full_views.allpool_fit.shape[1]),
         "rowagg_feature_names": list(full_views.rowagg_fit.columns),
         "allpool_first_40_feature_names": list(full_views.allpool_fit.columns[:40]),
     }
-    if feature_manifest["raw_clean_count"] != 12 or feature_manifest["rowagg_clean_count"] != 26 or feature_manifest["allpool_noenv_count"] != 197:
+    if feature_manifest["raw_clean_count"] != 12 or feature_manifest["rowagg_clean_count"] != 26 or feature_manifest["allpool_nohumidity_count"] != 197:
         raise ValueError(f"Unexpected feature counts: {feature_manifest}")
 
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     submission_path = output_dir / f"{args.submission_prefix}_{timestamp}.csv"
     summary_path = output_dir / f"{args.submission_prefix}_{timestamp}.json"
-    env_bins_path = output_dir / f"{args.submission_prefix}_{timestamp}_env_weight_bins.csv"
+    humidity_bins_path = output_dir / f"{args.submission_prefix}_{timestamp}_humidity_weight_bins.csv"
     blend_weights_path = output_dir / f"{args.submission_prefix}_{timestamp}_target_simplex_weights.csv"
     blended_oof_model_path = output_dir / f"{args.submission_prefix}_{timestamp}_oof_blend_modelspace.csv"
     blended_oof_full_path = output_dir / f"{args.submission_prefix}_{timestamp}_oof_blend_full.csv"
@@ -616,7 +612,7 @@ def main() -> None:
     feature_manifest_path = output_dir / f"{args.submission_prefix}_{timestamp}_feature_manifest.json"
 
     submission.to_csv(submission_path, index=False)
-    env_weight_bins.to_csv(env_bins_path, index=False)
+    humidity_weight_bins.to_csv(humidity_bins_path, index=False)
     blend_weights.to_csv(blend_weights_path, index=True)
     blended_oof_model.to_csv(blended_oof_model_path, index=True)
     blended_oof_full.to_csv(blended_oof_full_path, index=True)
@@ -638,13 +634,13 @@ def main() -> None:
         },
         "preprocessing": {
             "clipping": full_views.clipping_profile,
-            "environment_removed_before_feature_engineering": True,
+            "humidity_removed_before_feature_engineering": True,
             "forbidden_feature_patterns": ["Humidity", "humidity_*", "humidity_times_*", "support_gap"],
         },
         "feature_views": feature_manifest,
         "sample_weighting": {
             "rule": {"Humidity < 0.6": 1.0, "Humidity >= 0.6": 1.2},
-            "env_weight_bins_path": str(env_bins_path.relative_to(ROOT)),
+            "humidity_weight_bins_path": str(humidity_bins_path.relative_to(ROOT)),
         },
         "base_models": {
             "et_rowagg_mf06_bs": {
@@ -664,7 +660,7 @@ def main() -> None:
                 "test_path": str((output_dir / "et_rowagg_mf06_bs_test.csv").relative_to(ROOT)),
             },
             "et_allpool_3": {
-                "dataset": "allpool_noenv",
+                "dataset": "allpool_nohumidity",
                 "params": {
                     "n_estimators": 300,
                     "max_depth": 17,
@@ -711,3 +707,5 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+

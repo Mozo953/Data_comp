@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -165,9 +165,9 @@ def engineer_features(features: pd.DataFrame) -> pd.DataFrame:
     return engineered
 
 
-def engineer_env_focus_features(features: pd.DataFrame) -> pd.DataFrame:
-    base = _extract_feature_block(features, include_env=True)
-    env_focus = base.copy()
+def engineer_humidity_focus_features(features: pd.DataFrame) -> pd.DataFrame:
+    base = _extract_feature_block(features, include_humidity=True)
+    humidity_focus = base.copy()
     block_groups = {
         "block_a": ["M12", "M13", "M14", "M15"],
         "block_b": ["M4", "M5", "M6", "M7"],
@@ -178,27 +178,27 @@ def engineer_env_focus_features(features: pd.DataFrame) -> pd.DataFrame:
     for name, columns in block_groups.items():
         block_mean = base[columns].mean(axis=1)
         block_means[name] = block_mean
-        env_focus[f"{name}_mean"] = block_mean
-        env_focus[f"{name}_range"] = base[columns].max(axis=1) - base[columns].min(axis=1)
+        humidity_focus[f"{name}_mean"] = block_mean
+        humidity_focus[f"{name}_range"] = base[columns].max(axis=1) - base[columns].min(axis=1)
 
-    env_focus["block_gap"] = block_means["block_a"] - block_means["block_b"]
-    env_focus["support_gap"] = block_means["support"] - base["Humidity"]
-    env_focus["humidity_times_block_a"] = base["Humidity"] * block_means["block_a"]
-    env_focus["humidity_times_block_b"] = base["Humidity"] * block_means["block_b"]
-    env_focus["humidity_times_support"] = base["Humidity"] * block_means["support"]
+    humidity_focus["block_gap"] = block_means["block_a"] - block_means["block_b"]
+    humidity_focus["support_gap"] = block_means["support"] - base["Humidity"]
+    humidity_focus["humidity_times_block_a"] = base["Humidity"] * block_means["block_a"]
+    humidity_focus["humidity_times_block_b"] = base["Humidity"] * block_means["block_b"]
+    humidity_focus["humidity_times_support"] = base["Humidity"] * block_means["support"]
 
     for column in COMPETITION_FEATURES:
         if column == "Humidity":
             continue
-        env_focus[f"{column}_minus_humidity"] = base[column] - base["Humidity"]
-    return env_focus
+        humidity_focus[f"{column}_minus_humidity"] = base[column] - base["Humidity"]
+    return humidity_focus
 
 
-def _extract_feature_block(features: pd.DataFrame, *, include_env: bool = True) -> pd.DataFrame:
+def _extract_feature_block(features: pd.DataFrame, *, include_humidity: bool = True) -> pd.DataFrame:
     base = standardize_feature_columns(features)
     if "ID" in base.columns:
         base = base.drop(columns=["ID"])
-    columns = COMPETITION_FEATURES if include_env else MODELING_FEATURES
+    columns = COMPETITION_FEATURES if include_humidity else MODELING_FEATURES
     return base[columns].copy()
 
 
@@ -210,7 +210,7 @@ def fit_feature_cleaning_profile(
     if not 0.0 < tail_quantile < 0.5:
         raise ValueError("tail_quantile must be between 0 and 0.5.")
 
-    train_base = _extract_feature_block(x_train, include_env=True)
+    train_base = _extract_feature_block(x_train, include_humidity=True)
     lower_bounds = train_base.quantile(tail_quantile)
     upper_bounds = train_base.quantile(1.0 - tail_quantile)
     lower_bounds["Humidity"] = 0.0
@@ -222,7 +222,7 @@ def fit_feature_cleaning_profile(
 
 
 def apply_feature_cleaning(features: pd.DataFrame, profile: FeatureCleaningProfile) -> pd.DataFrame:
-    base = _extract_feature_block(features, include_env=True)
+    base = _extract_feature_block(features, include_humidity=True)
     return base.clip(lower=profile.lower_bounds, upper=profile.upper_bounds, axis="columns")
 
 
@@ -239,7 +239,7 @@ def prepare_feature_frames(
 
 
 def raw_features(features: pd.DataFrame) -> pd.DataFrame:
-    return _extract_feature_block(features, include_env=False)
+    return _extract_feature_block(features, include_humidity=False)
 
 
 def infer_target_schema(targets: pd.DataFrame) -> TargetSchema:
@@ -335,3 +335,4 @@ def build_submission_frame(test_ids: pd.Series, predictions: pd.DataFrame) -> pd
     for column in COMPETITION_TARGETS:
         submission[column] = np.clip(predictions[column].to_numpy(), 0.0, 1.0)
     return submission
+

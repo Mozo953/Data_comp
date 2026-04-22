@@ -93,7 +93,7 @@ def add_weighted_loss(
     oof_path: Path,
     sample_weights_path: Path,
 ) -> pd.DataFrame:
-    x_train = standardize_feature_columns(pd.read_csv(data_dir / "X_train.csv", usecols=lambda column: column in {"Env", "Humidity"}))
+    x_train = standardize_feature_columns(pd.read_csv(data_dir / "X_train.csv"))[["Humidity"]]
     y_train_raw = standardize_target_columns(pd.read_csv(data_dir / "y_train.csv"))
     y_train = y_train_raw.drop(columns=["ID"]) if "ID" in y_train_raw.columns else y_train_raw
     oof = load_oof_predictions(oof_path, y_train)
@@ -195,7 +195,7 @@ def write_svg(
         lines.append(svg_text(xm, yw - 13, f"{float(row['fixed_weight']):.2f}", size=12, color="#B91C1C"))
         lines.append(f'<circle cx="{xm:.1f}" cy="{yl:.1f}" r="5.2" fill="#16A34A"/>')
         lines.append(svg_text(xm, yl - 12, f"{float(row['weighted_loss']):.3f}", size=10, color="#15803D"))
-        label = str(row["env_interval"])
+        label = str(row["humidity_interval"])
         lines.append(svg_text(xm, top + plot_h + 40, label, size=10, color="#374151", rotate=f"rotate(-35 {xm:.1f} {top + plot_h + 40:.1f})"))
 
     weight_poly = " ".join(f"{x:.1f},{y:.1f}" for x, y in weight_points)
@@ -230,7 +230,7 @@ def main() -> None:
     oof_path = source_dir / args.oof_file
     sample_weights_path = source_dir / args.sample_weights_file
     frame = pd.read_csv(bins_path)
-    parsed = frame["env_interval"].map(parse_interval)
+    parsed = frame["humidity_interval"].map(parse_interval)
     frame["left"] = [left for left, _ in parsed]
     frame["right"] = [right for _, right in parsed]
     frame = add_weighted_loss(frame, data_dir=data_dir, oof_path=oof_path, sample_weights_path=sample_weights_path)

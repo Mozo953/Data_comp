@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import argparse
 import json
@@ -55,8 +55,9 @@ def main() -> None:
     if not weight_path.exists():
         raise FileNotFoundError(weight_path)
 
-    frame = pd.read_csv(weight_path).sort_values("env_mean").reset_index(drop=True)
-    env = frame["env_mean"].to_numpy(dtype=np.float64)
+    frame = pd.read_csv(weight_path)
+    frame = frame.sort_values("humidity_mean").reset_index(drop=True)
+    humidity = frame["humidity_mean"].to_numpy(dtype=np.float64)
     weight = frame["weight_smooth"].to_numpy(dtype=np.float64)
 
     width = 1120
@@ -73,7 +74,7 @@ def main() -> None:
     y_min = 1.0
     y_max = max(3.0, float(weight.max()) * 1.08)
     curve = line_points(
-        env,
+        humidity,
         weight,
         x_min=x_min,
         x_max=x_max,
@@ -134,3 +135,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

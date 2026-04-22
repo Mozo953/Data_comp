@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import argparse
 import json
@@ -29,7 +29,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--report-prefix", default="humidity_loss")
     parser.add_argument(
         "--loss-weighting",
-        choices=["binary-humidity", "binary-env", "model46", "sample-file", "none"],
+        choices=["binary-humidity", "binary-humidity-06", "model46", "sample-file", "none"],
         default="binary-humidity",
         help="binary-humidity: 1.2 if Humidity>=0.6; model46: 1.4 if Humidity>=0.4; sample-file: read sample_weights_*.csv; none: unweighted.",
     )
@@ -124,12 +124,12 @@ def load_oof_predictions(oof_path: Path, y_train: pd.DataFrame) -> pd.DataFrame:
     return oof[model_cols].reindex(y_train.index).astype(np.float64)
 
 
-def row_weights_for_env(env_values: np.ndarray, mode: str) -> np.ndarray:
+def row_weights_for_humidity(humidity_values: np.ndarray, mode: str) -> np.ndarray:
     if mode == "none":
-        return np.ones_like(env_values, dtype=np.float64)
+        return np.ones_like(humidity_values, dtype=np.float64)
     if mode == "model46":
-        return np.where(env_values >= 0.4, 1.4, 1.0).astype(np.float64)
-    return np.where(env_values >= 0.6, 1.2, 1.0).astype(np.float64)
+        return np.where(humidity_values >= 0.4, 1.4, 1.0).astype(np.float64)
+    return np.where(humidity_values >= 0.6, 1.2, 1.0).astype(np.float64)
 
 
 def load_sample_weights(source_dir: Path, explicit_name: str | None, expected_len: int) -> tuple[np.ndarray, str]:
@@ -161,20 +161,20 @@ def main() -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     oof_path = find_oof_file(source_dir, args.oof_file)
-    x_train = standardize_feature_columns(pd.read_csv(data_dir / "X_train.csv", usecols=lambda column: column in {"Env", "Humidity"}))
-    x_test = standardize_feature_columns(pd.read_csv(data_dir / "X_test.csv", usecols=lambda column: column in {"Env", "Humidity"}))
+    x_train = standardize_feature_columns(pd.read_csv(data_dir / "X_train.csv"))[["Humidity"]]
+    x_test = standardize_feature_columns(pd.read_csv(data_dir / "X_test.csv"))[["Humidity"]]
     y_train_raw = standardize_target_columns(pd.read_csv(data_dir / "y_train.csv"))
     y_train = y_train_raw.drop(columns=["ID"]) if "ID" in y_train_raw.columns else y_train_raw
     oof = load_oof_predictions(oof_path, y_train)
     y_model = y_train[oof.columns].copy()
 
-    train_env = x_train["Humidity"].to_numpy(dtype=np.float64)
-    test_env = x_test["Humidity"].to_numpy(dtype=np.float64)
+    train_humidity = x_train["Humidity"].to_numpy(dtype=np.float64)
+    test_humidity = x_test["Humidity"].to_numpy(dtype=np.float64)
     sample_weight_source = None
     if args.loss_weighting == "sample-file":
-        row_weights, sample_weight_source = load_sample_weights(source_dir, args.sample_weights_file, len(train_env))
+        row_weights, sample_weight_source = load_sample_weights(source_dir, args.sample_weights_file, len(train_humidity))
     else:
-        row_weights = row_weights_for_env(train_env, args.loss_weighting)
+        row_weights = row_weights_for_humidity(train_humidity, args.loss_weighting)
     row_rmse = np.sqrt(
         np.mean(
             np.square(np.clip(oof.to_numpy(dtype=np.float64), 0.0, 1.0) - y_model.to_numpy(dtype=np.float64)),
@@ -185,13 +185,13 @@ def main() -> None:
 
     edges = np.linspace(0.0, 1.0, 51)
     mids = (edges[:-1] + edges[1:]) / 2.0
-    train_counts, _ = np.histogram(train_env, bins=edges)
-    test_counts, _ = np.histogram(test_env, bins=edges)
+    train_counts, _ = np.histogram(train_humidity, bins=edges)
+    test_counts, _ = np.histogram(test_humidity, bins=edges)
     train_curve = gaussian_smooth(train_counts, sigma=2.0)
     test_curve = gaussian_smooth(test_counts, sigma=2.0)
 
-    loss_sum, _ = np.histogram(train_env, bins=edges, weights=weighted_row_rmse)
-    loss_count, _ = np.histogram(train_env, bins=edges)
+    loss_sum, _ = np.histogram(train_humidity, bins=edges, weights=weighted_row_rmse)
+    loss_count, _ = np.histogram(train_humidity, bins=edges)
     loss_per_bin = np.divide(
         loss_sum,
         np.clip(loss_count, 1, None),
@@ -304,8 +304,8 @@ def main() -> None:
         "curve_csv_path": str(csv_path.relative_to(ROOT)),
         "count_axis_cap": int(args.count_axis_cap),
         "loss_axis_cap": float(args.loss_axis_cap),
-        "total_train_rows": int(len(train_env)),
-        "total_test_rows": int(len(test_env)),
+        "total_train_rows": int(len(train_humidity)),
+        "total_test_rows": int(len(test_humidity)),
         "loss_source_file": oof_path.name,
         "loss_weighting": args.loss_weighting,
         "sample_weight_source_file": sample_weight_source,
@@ -316,3 +316,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

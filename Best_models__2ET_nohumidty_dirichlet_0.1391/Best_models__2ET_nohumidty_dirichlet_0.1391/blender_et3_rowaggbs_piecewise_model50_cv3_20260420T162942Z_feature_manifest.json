@@ -1,7 +1,7 @@
 {
   "raw_clean_count": 12,
   "rowagg_clean_count": 26,
-  "allpool_noenv_count": 197,
+  "allpool_noenv_count": 135,
   "rowagg_feature_names": [
     "row_mean",
     "row_std",

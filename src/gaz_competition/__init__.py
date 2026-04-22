@@ -1,4 +1,4 @@
-"""Utilities for the odor-detection competition workflow."""
+"""Utilities for the gas-detection competition workflow."""
 
 from .data import (
     COMPETITION_TARGETS,

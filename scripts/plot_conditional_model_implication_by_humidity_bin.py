@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import argparse
 import json
@@ -67,12 +67,12 @@ def load_oof(path: Path) -> pd.DataFrame:
     return frame.astype(np.float32)
 
 
-def zone_for_env(env: np.ndarray, low: float, high: float) -> np.ndarray:
-    return np.where((env >= low) & (env <= high), "inside_045_080", "outside_045_080")
+def zone_for_humidity(humidity: np.ndarray, low: float, high: float) -> np.ndarray:
+    return np.where((humidity >= low) & (humidity <= high), "inside_045_080", "outside_045_080")
 
 
 def compute_implication(
-    env: pd.Series,
+    humidity: pd.Series,
     predictions: dict[str, pd.DataFrame],
     weights: pd.DataFrame,
     *,
@@ -85,17 +85,17 @@ def compute_implication(
         if list(predictions[model_name].columns) != targets:
             raise ValueError(f"OOF target columns mismatch for {model_name}.")
 
-    n_rows = len(env)
+    n_rows = len(humidity)
     for model_name, frame in predictions.items():
         if len(frame) != n_rows:
-            raise ValueError(f"OOF row count mismatch for {model_name}: {len(frame)} vs env={n_rows}.")
+            raise ValueError(f"OOF row count mismatch for {model_name}: {len(frame)} vs humidity={n_rows}.")
 
     weight_lookup = {
         (str(row["target"]), str(row["zone"])): np.asarray([row[model] for model in MODEL_COLUMNS], dtype=np.float32)
         for _, row in weights.iterrows()
     }
-    env_values = env.to_numpy(dtype=np.float32)
-    zones = zone_for_env(env_values, low, high)
+    humidity_values = humidity.to_numpy(dtype=np.float32)
+    zones = zone_for_humidity(humidity_values, low, high)
     edges = np.linspace(0.0, 1.0, bins + 1)
     rows: list[dict[str, float | int]] = []
 
@@ -104,9 +104,9 @@ def compute_implication(
     for bin_id in range(bins):
         left, right = float(edges[bin_id]), float(edges[bin_id + 1])
         if bin_id == bins - 1:
-            mask = (env_values >= left) & (env_values <= right)
+            mask = (humidity_values >= left) & (humidity_values <= right)
         else:
-            mask = (env_values >= left) & (env_values < right)
+            mask = (humidity_values >= left) & (humidity_values < right)
         count = int(mask.sum())
         row: dict[str, float | int] = {
             "bin_id": int(bin_id),
@@ -167,7 +167,7 @@ def write_svg(curve: pd.DataFrame, figure_path: Path, *, title: str) -> None:
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">',
         '<rect width="100%" height="100%" fill="#fbfaf7"/>',
         svg_text(width / 2, 38, title, size=24),
-        svg_text(width / 2, 62, "Barres empilées = contribution effective dans la prédiction finale; ligne grise = nombre de lignes train", size=12, color="#687076"),
+        svg_text(width / 2, 62, "Barres empilÃ©es = contribution effective dans la prÃ©diction finale; ligne grise = nombre de lignes train", size=12, color="#687076"),
     ]
 
     # Grid for share axis.
@@ -231,11 +231,11 @@ def main() -> None:
         "et_allpool_3": load_oof(source_dir / args.allpool_oof_file),
         "rf_local_045_080": load_oof(source_dir / args.rf_oof_file),
     }
-    env = load_modeling_data(resolve_path(args.data_dir)).data.x_train["Humidity"]
-    env = env.iloc[: len(predictions["et_rowagg_mf06_bs"])].reset_index(drop=True)
+    humidity = load_modeling_data(resolve_path(args.data_dir)).data.x_train["Humidity"]
+    humidity = humidity.iloc[: len(predictions["et_rowagg_mf06_bs"])].reset_index(drop=True)
 
     curve = compute_implication(
-        env,
+        humidity,
         predictions,
         weights,
         bins=int(args.bins),
@@ -269,3 +269,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

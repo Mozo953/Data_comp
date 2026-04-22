@@ -89,7 +89,7 @@ def add_loss_per_bin(
     oof_path: Path,
     sample_weights_path: Path | None,
 ) -> pd.DataFrame:
-    x_train = standardize_feature_columns(pd.read_csv(data_dir / "X_train.csv", usecols=lambda column: column in {"Env", "Humidity"}))
+    x_train = standardize_feature_columns(pd.read_csv(data_dir / "X_train.csv"))[["Humidity"]]
     y_train_raw = standardize_target_columns(pd.read_csv(data_dir / "y_train.csv"))
     y_train = y_train_raw.drop(columns=["ID"]) if "ID" in y_train_raw.columns else y_train_raw
     oof = load_oof_predictions(oof_path, y_train)
@@ -156,7 +156,7 @@ def write_svg(frame: pd.DataFrame, figure_path: Path, *, title: str, weight_axis
         x_right = left + right_edge * plot_w
         step_points.extend([(x_left, y_weight), (x_right, y_weight)])
         lines.append(svg_text(x_mid, y_weight - 10, f"{float(row['fixed_weight']):.2f}", size=12, color="#B42335"))
-        lines.append(svg_text(x_mid, top + plot_h + 28, str(row["env_interval"]), size=10, color="#687076"))
+        lines.append(svg_text(x_mid, top + plot_h + 28, str(row["humidity_interval"]), size=10, color="#687076"))
 
     points = " ".join(f"{x:.1f},{y:.1f}" for x, y in step_points)
     lines.append(f'<polyline points="{points}" fill="none" stroke="#C73E4A" stroke-width="4.0"/>')
@@ -207,7 +207,7 @@ def main() -> None:
     data_dir = resolve_path(args.data_dir)
     bins_path = source_dir / args.bins_file
     frame = pd.read_csv(bins_path)
-    parsed = frame["env_interval"].map(parse_interval)
+    parsed = frame["humidity_interval"].map(parse_interval)
     frame["left"] = [left for left, _ in parsed]
     frame["right"] = [right for _, right in parsed]
     oof_path = None if args.oof_file is None else source_dir / args.oof_file

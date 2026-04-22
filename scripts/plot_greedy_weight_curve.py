@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import argparse
 import json
@@ -56,8 +56,9 @@ def main() -> None:
     if not weight_path.exists():
         raise FileNotFoundError(weight_path)
 
-    frame = pd.read_csv(weight_path).sort_values("env_mean").reset_index(drop=True)
-    x = frame["env_mean"].to_numpy(dtype=np.float64)
+    frame = pd.read_csv(weight_path)
+    frame = frame.sort_values("humidity_mean").reset_index(drop=True)
+    x = frame["humidity_mean"].to_numpy(dtype=np.float64)
     weight_smooth = frame["weight_smooth"].to_numpy(dtype=np.float64)
     weight_raw = frame["weight_raw"].to_numpy(dtype=np.float64)
     loss_norm = frame["loss_norm"].to_numpy(dtype=np.float64)
@@ -204,3 +205,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

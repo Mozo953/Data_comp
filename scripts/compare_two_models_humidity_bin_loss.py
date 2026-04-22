@@ -276,8 +276,8 @@ def main() -> None:
     output_dir = model_b_dir if args.output_dir is None else resolve_path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    x_train = standardize_feature_columns(pd.read_csv(data_dir / "X_train.csv", usecols=lambda column: column in {"Env", "Humidity"}))
-    x_test = standardize_feature_columns(pd.read_csv(data_dir / "X_test.csv", usecols=lambda column: column in {"Env", "Humidity"}))
+    x_train = standardize_feature_columns(pd.read_csv(data_dir / "X_train.csv"))[["Humidity"]]
+    x_test = standardize_feature_columns(pd.read_csv(data_dir / "X_test.csv"))[["Humidity"]]
     y_train_raw = standardize_target_columns(pd.read_csv(data_dir / "y_train.csv"))
     y_train = y_train_raw.drop(columns=["ID"]) if "ID" in y_train_raw.columns else y_train_raw
     pred_a = load_oof_predictions(model_a_dir / args.model_a_oof, y_train)
