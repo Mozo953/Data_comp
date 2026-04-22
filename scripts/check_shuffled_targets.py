@@ -11,8 +11,8 @@ from sklearn.model_selection import KFold
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from odor_competition.data import load_modeling_data  # noqa: E402
-from odor_competition.metrics import competition_rmse  # noqa: E402
+from gaz_competition.data import load_modeling_data  # noqa: E402
+from gaz_competition.metrics import competition_rmse  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:

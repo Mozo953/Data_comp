@@ -14,7 +14,7 @@ from sklearn.preprocessing import StandardScaler
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from odor_competition.data import load_competition_data  # noqa: E402
+from gaz_competition.data import load_competition_data  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:

@@ -12,7 +12,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from odor_competition.data import load_modeling_data  # noqa: E402
+from gaz_competition.data import load_modeling_data  # noqa: E402
 
 
 MODEL_COLUMNS = ["et_rowagg_mf06_bs", "et_allpool_3", "rf_local_045_080"]

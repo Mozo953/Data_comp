@@ -15,7 +15,7 @@ from sklearn.model_selection import KFold
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from odor_competition.data import build_submission_frame, load_modeling_data  # noqa: E402
+from gaz_competition.data import build_submission_frame, load_modeling_data  # noqa: E402
 
 
 RAW_COLUMNS = ["M12", "M13", "M14", "M15", "M4", "M5", "M6", "M7", "R", "S1", "S2", "S3"]

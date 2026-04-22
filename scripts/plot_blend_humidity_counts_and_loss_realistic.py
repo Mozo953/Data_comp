@@ -12,7 +12,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
-from odor_competition.data import standardize_feature_columns, standardize_target_columns  # noqa: E402
+from gaz_competition.data import standardize_feature_columns, standardize_target_columns  # noqa: E402
 
 
 def parse_args() -> argparse.Namespace:
