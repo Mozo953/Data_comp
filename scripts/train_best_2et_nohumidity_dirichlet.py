@@ -25,7 +25,7 @@ def parse_args() -> argparse.Namespace:
             "and target-wise Dirichlet blend."
         )
     )
-    parser.add_argument("--data-dir", default="src/odor_competition/data")
+    parser.add_argument("--data-dir", default="src/gaz_competition/data")
     parser.add_argument("--output-dir", default="artifacts_extratrees_corr_optuna/Best_models__2ET_nohumidty_dirichlet_0.1391")
     parser.add_argument("--submission-prefix", default="best_2et_nohumidity_dirichlet")
     parser.add_argument("--cv-folds", type=int, default=3)
@@ -476,5 +476,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
 

@@ -13,6 +13,7 @@ optuna>=4.0
 matplotlib>=3.10
 seaborn>=0.13
 ydata-profiling>=4.12
+shap>=0.46
 
 # Notebooks
 jupyter>=1.1

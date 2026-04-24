@@ -1,59 +1,24 @@
-﻿# Scripts
+README Scripts
 
-Scripts d'entrainement, de test et de visualisation pour la detection de gaz.
+Ce dossier contient les scripts pour entrainer, analyser et visualiser le pipeline de detection de gaz.
 
-## A lancer en priorite
+Commande principale :
 
-### `train_best_2et_nohumidity_dirichlet.py`
+python scripts/train_best_2et_nohumidity_dirichlet.py --data-dir src/gaz_competition/data
 
-Script final. Il reproduit le meilleur modele:
+Commande SHAP du meilleur pipeline :
 
-- 2 modeles ExtraTrees;
-- `Humidity` retiree des features;
-- poids `model50`;
-- blend Dirichlet par cible gaz;
-- generation de la soumission.
+python scripts/shap_best_2et_nohumidity_dirichlet.py --data-dir src/gaz_competition/data
 
-```powershell
-python scripts/train_best_2et_nohumidity_dirichlet.py --data-dir src/odor_competition/data
-```
+Scripts cles
 
-### `best_2et_nohumidity_core.py`
+train_best_2et_nohumidity_dirichlet.py : pipeline final complet (2 ExtraTrees + blend Dirichlet + submission)
+best_2et_nohumidity_core.py : coeur du pipeline final et feature engineering sans humidite
+shap_best_2et_nohumidity_dirichlet.py : explication SHAP des 2 ExtraTrees du meilleur pipeline
+check_shuffled_targets.py : sanity check anti-fuite
+adversarial_validation_train_test.py : analyse du shift train/test
 
-Code commun du modele final:
+A retenir
 
-- creation des features capteurs;
-- definition des modeles;
-- metrique;
-- blend;
-- helpers de prediction.
-
-Plusieurs scripts dependent de ce fichier.
-
-### `check_shuffled_targets.py`
-
-Test rapide pour verifier que le modele n'apprend pas seulement du bruit.
-
-```powershell
-python scripts/check_shuffled_targets.py --data-dir src/odor_competition/data --target c01
-```
-
-## Autres scripts
-
-| Type | Scripts |
-| --- | --- |
-| Experiences modeles | fichiers dans `archive_scripts/` |
-| Diagnostics | `adversarial_validation_train_test.py`, `compare_two_models_humidity_bin_loss.py` |
-| Visualisations | tous les scripts `plot_*.py` |
-
-## Dependances internes
-
-Les scripts utilisent surtout:
-
-- `src/odor_competition/data.py` pour charger les donnees gaz et creer la soumission;
-- `src/odor_competition/metrics.py` pour la metrique;
-- `src/odor_competition/reporting.py` pour certains graphes;
-- `src/odor_competition/data_shift.py` pour les analyses du shift train/test lie a l'humidite.
-
-Le nom `odor_competition` est historique: le workflow correspond ici a la detection de gaz.
-
+Le blend final est un ensemble de 2 modeles, donc le script SHAP explique chaque ExtraTrees separement.
+Les sorties volumineuses restent dans artifacts_extratrees_corr_optuna/
