@@ -41,23 +41,6 @@ Le script vérifie aussi que les colonnes liées à l’environnement ne réappa
 - `env_*`
 - `env_times_*`
 
-## Pondération `model50`
-
-Le preset final utilisé par défaut est `model50`.
-
-Il applique une pondération par intervalles de `Humidity`:
-
-| Intervalle Humidity | Poids |
-| --- | ---: |
-| `[0.00, 0.20)` | `1.00` |
-| `[0.20, 0.39)` | `1.10` |
-| `[0.39, 0.50)` | `1.35` |
-| `[0.50, 0.68)` | `1.00` |
-| `[0.68, 0.80)` | `1.25` |
-| `[0.80, 1.00]` | `1.25` |
-
-Ces poids donnent plus d’importance à certaines zones d’humidité pendant l’entraînement, afin de mieux gérer le décalage de distribution observé entre train et test.
-
 ## Modèles De Base
 
 ### `et_rowagg_mf06_bs`
