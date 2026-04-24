@@ -27,7 +27,6 @@ Fichiers attendus:
 - `X_test.csv`
 - `y_train.csv`
 
-Le nom `odor_competition` est historique. Le sujet documente ici est la detection de gaz.
 
 ## Artefacts
 
